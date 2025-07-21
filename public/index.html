@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MCAS Tracker</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="container">
+<header>
+<h1>MCAS Medication & Food Tracker</h1>
+<div class="tabs">
+  <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
+  <button class="nav-btn" data-tab="entry">Add Entry</button>
+  <button class="nav-btn" data-tab="history">History</button>
+  <button class="nav-btn" data-tab="analysis">Analysis</button>
+</div>
+</header>
+
+<!-- Dashboard -->
+<section id="dashboard" class="tab-content active">
+<h2>Dashboard</h2>
+<div class="dashboard-grid">
+<div class="card">
+<h3>Recent Trends</h3>
+<div class="trend-filter">
+        <label for="trendSubstanceFilter">Filter by Substance:</label>
+        <select id="trendSubstanceFilter">
+            <option value="all">All Substances</option>
+        </select>
+    </div>
+<canvas id="severityChart" width="400" height="180"></canvas>
+</div>
+<div class="card">
+<h3>Quick Stats</h3>
+<ul>
+<li>Total Entries: <span id="totalEntries">0</span></li>
+<li>Today's Entries: <span id="todayEntries">0</span></li>
+<li>Average Severity: <span id="avgSeverity">0.0</span></li>
+<li>Most Tracked Item: <span id="mostTracked">None</span></li>
+</ul>
+</div>
+</div>
+</section>
+
+<!-- Add/Edit Entry -->
+<section id="entry" class="tab-content">
+<h2>Add / Edit Entry</h2>
+<form id="entryForm">
+<input type="hidden" id="editId" />
+<div class="form-grid">
+<div class="form-group">
+<label>Date</label>
+<input type="date" id="entryDate" required />
+</div>
+<div class="form-group">
+<label>Time</label>
+<input type="time" id="entryTime" required />
+</div>
+<div class="form-group">
+<label>Item Type</label>
+<select id="itemType" required>
+<option value="">Select</option>
+<option value="Famotidine (medication)">Famotidine</option>
+<option value="Sunfiber (supplement)">Sunfiber</option>
+<option value="Topical Aloe Vera (supplement)">Topical Aloe Vera</option>
+<option value="New Food">New Food</option>
+</select>
+</div>
+<div class="form-group" id="customItemGroup" style="display:none;">
+  <label>Custom Item</label>
+  <input type="text" id="customItem" />
+</div>
+<div class="form-group">
+<label>Amount</label>
+<input type="text" id="amount" />
+</div>
+<div class="form-group full-width">
+<fieldset>
+<legend>Post-dose Symptoms</legend>
+<div class="checkbox-grid" id="postDoseSymptoms">
+<label><input type="checkbox" value="Flushing" />Flushing</label>
+<label><input type="checkbox" value="Hives" />Hives</label>
+<label><input type="checkbox" value="Itching" />Itching</label>
+<label><input type="checkbox" value="Bloating" />Bloating</label>
+<label><input type="checkbox" value="Congestion" />Congestion</label>
+<label><input type="checkbox" value="Constipation" />Constipation</label>
+<label><input type="checkbox" value="Burping" />Burping</label>
+<label><input type="checkbox" value="Food sensitivity" />Food sensitivity</label>
+<label><input type="checkbox" value="Myoclonic Jerking" />Myoclonic Jerking</label>
+<label><input type="checkbox" value="Brain Fog" />Brain Fog</label>
+<label><input type="checkbox" value="Headache" />Headache</label>
+<label><input type="checkbox" value="Burning / pins & needles (legs)" />Burning / pins & needles (legs)</label>
+<label><input type="checkbox" value="Diffuse pain" />Diffuse pain</label>
+<label><input type="checkbox" value="Reactive nose ('Kissing mouth')" />Reactive nose ('Kissing mouth')</label>
+<label><input type="checkbox" value="Sharp sensation in the nose" />Sharp sensation in the nose</label>
+
+</div>
+</fieldset>
+</div>
+<div class="form-group full-width">
+  <label>Symptom Severity</label>
+  <div class="slider-container">
+    <input type="range" id="symptomSeverity" min="1" max="10" value="1" step="1" />
+    <span id="severityValue" class="severity-display">1</span>
+  </div>
+  <div class="slider-marks">
+    <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+    <span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+  </div>
+</div>
+<div class="form-group full-width">
+  <fieldset id="environmentalFactors">
+    <legend>Environmental Factors</legend>
+    <div class="checkbox-grid">
+      <label><input type="checkbox" value="Sunlight" />Sunlight</label>
+      <label><input type="checkbox" value="Cold Water" />Cold Water</label>
+      <label><input type="checkbox" value="Chemical Exposure" />Chemical Exposure</label>
+      <label><input type="checkbox" value="Temperature Extremes" />Temperature Extremes</label>
+      <label><input type="checkbox" value="Benzo withdrawal" />Benzo withdrawal</label>
+      <label><input type="checkbox" value="Sleep Deprivation" />Sleep Deprivation</label>
+      <label><input type="checkbox" value="Physical Exertion" />Physical Exertion</label>
+     <label><input type="checkbox" value="Constipation" />Constipation</label>
+      <label><input type="checkbox" value="High Stress" id="highStressCheckbox" />High Stress (specify)</label>
+    </div>
+    <div id="highStressGroup" style="display:none; margin-top: 0.5em;">
+      <input type="text" id="highStressText" placeholder="Specify type of stress" />
+    </div>
+  </fieldset>
+</div>
+
+<div class="form-group full-width">
+  <label>Remarks</label>
+  <textarea id="remarks" rows="4" style="resize:vertical; min-height:3em; max-height:12em;" placeholder="Enter any notes or context here"></textarea>
+</div>
+<div class="form-group full-width button-row">
+  <button type="submit" class="save-btn">Save Entry</button>
+  <a href="#" class="clear-link" onclick="clearForm();return false;">Clear</a>
+</div></div>
+</form>
+</section>
+
+<!-- History -->
+<section id="history" class="tab-content">
+<h2>History</h2>
+<div class="filter-controls">
+<input type="text" id="searchFilter" placeholder="Search..." />
+<select id="categoryFilter">
+<option value="">All</option>
+<option value="Medication">Medication</option>
+<option value="Supplement">Supplement</option>
+<option value="Food">Food</option>
+</select>
+</div>
+<table id="historyTable">
+<thead>
+<tr>
+<th>Date</th><th>Item</th><th>Amount</th><th>Symptoms</th><th>Severity</th><th>Actions</th>
+</tr>
+</thead>
+<tbody id="historyBody"></tbody>
+</table>
+</section>
+
+<!-- Analysis -->
+<section id="analysis" class="tab-content">
+<h2>Analysis</h2>
+<div class="charts-grid">
+<div class="chart-card">
+<h3>Severity Over Time</h3>
+<canvas id="analysisSeverityChart"></canvas>
+</div>
+<div class="chart-card">
+<h3>Symptom Frequency</h3>
+<canvas id="symptomChart"></canvas>
+</div>
+</div>
+<div id="analysisText"></div>
+</section>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
