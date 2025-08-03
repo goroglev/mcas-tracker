@@ -110,8 +110,9 @@ function renderHistoryTable(list) {
             <td>${JSON.parse(entry.postDoseSymptoms || '[]').join(', ')}</td>
             <td>${entry.symptomSeverity}</td>
             <td>
-                <button class="edit-btn" data-id="${entry.id}">Edit</button>
-                <button class="delete" data-id="${entry.id}">Delete</button>
+    		<button class="edit-btn" data-id="${entry.id}">Edit</button>
+   		<button class="duplicate-btn" data-id="${entry.id}">Duplicate</button>
+    		<button class="delete" data-id="${entry.id}">Delete</button>
             </td>
         `;
         tbody.appendChild(row);
@@ -235,6 +236,68 @@ function clearForm() {
     resetCustomTextFields();
 }
 
+function duplicateEntry(id) {
+    const entry = entries.find(e => e.id === id);
+    if (!entry) return;
+    
+    // Clear the form first
+    clearForm();
+    
+    // Set current date and time
+    const now = new Date();
+    const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const currentTime = now.toTimeString().slice(0, 5);   // HH:MM format
+    
+    // NO editId - this creates a new entry
+    document.getElementById('editId').value = '';
+    
+    // Set current timestamp
+    document.getElementById('entryDate').value = currentDate;
+    document.getElementById('entryTime').value = currentTime;
+    
+    // Copy all other data from original entry
+    document.getElementById('itemType').value = entry.itemType;
+    document.getElementById('customItem').value = entry.customItem || '';
+    document.getElementById('amount').value = entry.amount;
+    document.getElementById('symptomSeverity').value = entry.symptomSeverity;
+    document.getElementById('severityValue').textContent = entry.symptomSeverity;
+    document.getElementById('remarks').value = entry.remarks || '';
+    
+    // Restore symptoms checkboxes
+    Array.from(document.querySelectorAll('#postDoseSymptoms input[type="checkbox"]')).forEach(c => {
+        c.checked = JSON.parse(entry.postDoseSymptoms || '[]').includes(c.value);
+    });
+    
+    // Restore environmental factors with proper text field handling
+    Array.from(document.querySelectorAll('#environmentalFactors input[type="checkbox"]')).forEach(c => {
+        const envFactors = JSON.parse(entry.environmentalFactors || '[]');
+        
+        if (c.value === 'High Stress') {
+            const stressFactor = envFactors.find(f => f.startsWith('High Stress:'));
+            if (stressFactor) {
+                c.checked = true;
+                document.getElementById('highStressText').value = stressFactor.substring(12);
+                document.getElementById('highStressGroup').style.display = 'block';
+            } else {
+                c.checked = false;
+                document.getElementById('highStressText').value = '';
+                document.getElementById('highStressGroup').style.display = 'none';
+            }
+        } else {
+            c.checked = envFactors.includes(c.value);
+        }
+    });
+    
+    // Show custom item group if needed
+    document.getElementById('customItemGroup').style.display = (entry.itemType === 'New Food') ? 'block' : 'none';
+    
+    // Set button text to indicate this is a new entry
+    document.querySelector('#entryForm button[type="submit"]').textContent = 'Save Entry';
+    
+    // Switch to entry tab for editing
+    switchTab('entry');
+}
+
 // --- Event Listeners ---
 function setupEventListeners() {
     document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -278,62 +341,65 @@ function setupEventListeners() {
         clearForm();
     });
 
-    document.getElementById('historyBody').addEventListener('click', function(e) {
-        const id = e.target.dataset.id;
-        if (e.target.matches('.edit-btn')) {
-            const entry = entries.find(e => e.id === id);
-            if (!entry) return;
+document.getElementById('historyBody').addEventListener('click', function(e) {
+    const id = e.target.dataset.id;
+    if (e.target.matches('.edit-btn')) {
+        const entry = entries.find(e => e.id === id);
+        if (!entry) return;
+        
+        document.getElementById('editId').value = entry.id;
+        document.getElementById('entryDate').value = entry.entryDate;
+        document.getElementById('entryTime').value = entry.entryTime;
+        document.getElementById('itemType').value = entry.itemType;
+        document.getElementById('customItem').value = entry.customItem || '';
+        document.getElementById('amount').value = entry.amount;
+        document.getElementById('symptomSeverity').value = entry.symptomSeverity;
+        document.getElementById('severityValue').textContent = entry.symptomSeverity;
+        document.getElementById('remarks').value = entry.remarks || '';
+        
+        // Restore symptoms checkboxes
+        Array.from(document.querySelectorAll('#postDoseSymptoms input[type="checkbox"]')).forEach(c => {
+            c.checked = JSON.parse(entry.postDoseSymptoms || '[]').includes(c.value);
+        });
+        
+        // Enhanced environmental factors restoration with proper text field handling
+        Array.from(document.querySelectorAll('#environmentalFactors input[type="checkbox"]')).forEach(c => {
+            const envFactors = JSON.parse(entry.environmentalFactors || '[]');
             
-            document.getElementById('editId').value = entry.id;
-            document.getElementById('entryDate').value = entry.entryDate;
-            document.getElementById('entryTime').value = entry.entryTime;
-            document.getElementById('itemType').value = entry.itemType;
-            document.getElementById('customItem').value = entry.customItem || '';
-            document.getElementById('amount').value = entry.amount;
-            document.getElementById('symptomSeverity').value = entry.symptomSeverity;
-            document.getElementById('severityValue').textContent = entry.symptomSeverity;
-            document.getElementById('remarks').value = entry.remarks || '';
-            
-            // Restore symptoms checkboxes
-            Array.from(document.querySelectorAll('#postDoseSymptoms input[type="checkbox"]')).forEach(c => {
-                c.checked = JSON.parse(entry.postDoseSymptoms || '[]').includes(c.value);
-            });
-            
-            // Enhanced environmental factors restoration with proper text field handling
-            Array.from(document.querySelectorAll('#environmentalFactors input[type="checkbox"]')).forEach(c => {
-                const envFactors = JSON.parse(entry.environmentalFactors || '[]');
-                
-                if (c.value === 'High Stress') {
-                    // Check if any factor starts with "High Stress:"
-                    const stressFactor = envFactors.find(f => f.startsWith('High Stress:'));
-                    if (stressFactor) {
-                        c.checked = true;
-                        document.getElementById('highStressText').value = stressFactor.substring(12); // Remove "High Stress: "
-                        document.getElementById('highStressGroup').style.display = 'block';
-                    } else {
-                        // CRITICAL: Clear both checkbox and text field when not selected
-                        c.checked = false;
-                        document.getElementById('highStressText').value = '';
-                        document.getElementById('highStressGroup').style.display = 'none';
-                    }
+            if (c.value === 'High Stress') {
+                // Check if any factor starts with "High Stress:"
+                const stressFactor = envFactors.find(f => f.startsWith('High Stress:'));
+                if (stressFactor) {
+                    c.checked = true;
+                    document.getElementById('highStressText').value = stressFactor.substring(12); // Remove "High Stress: "
+                    document.getElementById('highStressGroup').style.display = 'block';
                 } else {
-                    c.checked = envFactors.includes(c.value);
+                    // CRITICAL: Clear both checkbox and text field when not selected
+                    c.checked = false;
+                    document.getElementById('highStressText').value = '';
+                    document.getElementById('highStressGroup').style.display = 'none';
                 }
-            });
-            
-            document.getElementById('customItemGroup').style.display = (entry.itemType === 'New Food') ? 'block' : 'none';
-            document.querySelector('#entryForm button[type="submit"]').textContent = 'Update Entry';
-            
-            // Reset any other custom text fields after loading
-            resetCustomTextFields();
-            
-            switchTab('entry');
-        } else if (e.target.matches('.delete')) {
-            if (confirm('Are you sure you want to delete this entry?')) {
-                fetch(`/api/entries/id/${id}`, { method: 'DELETE' }).then(loadEntries);
+            } else {
+                c.checked = envFactors.includes(c.value);
             }
+        });
+        
+        document.getElementById('customItemGroup').style.display = (entry.itemType === 'New Food') ? 'block' : 'none';
+        document.querySelector('#entryForm button[type="submit"]').textContent = 'Update Entry';
+        
+        // Reset any other custom text fields after loading
+        resetCustomTextFields();
+        
+        switchTab('entry');
+    } else if (e.target.matches('.duplicate-btn')) {
+        duplicateEntry(id);
+    } else if (e.target.matches('.delete')) {
+        if (confirm('Are you sure you want to delete this entry?')) {
+            fetch(`/api/entries/id/${id}`, { method: 'DELETE' }).then(loadEntries);
         }
-    });
+    }
+});
+
 
     document.getElementById('itemType').addEventListener('change', e => {
         document.getElementById('customItemGroup').style.display = (e.target.value === 'New Food') ? 'block' : 'none';

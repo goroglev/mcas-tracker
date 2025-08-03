@@ -322,3 +322,25 @@ button:disabled {
     background: #fff;
     font-size: 0.95em;
 }
+.duplicate-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 0.4em 0.8em;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    margin: 0 2px;
+    transition: background 0.2s;
+}
+
+.duplicate-btn:hover {
+    background: #1e7e34;
+}
+
+/* Ensure action buttons are properly spaced */
+#historyTable td button {
+    margin: 0 2px;
+    font-size: 0.85em;
+}
+
