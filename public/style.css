@@ -344,3 +344,148 @@ button:disabled {
     font-size: 0.85em;
 }
 
+/* Mobile Responsive Design */
+@media (max-width: 768px) {
+    
+  /* Container adjustments */
+  .container {
+      padding: 10px;
+  }
+  
+  /* Navigation improvements */
+  .nav-btn {
+      padding: 0.6em 0.8em;
+      font-size: 0.9em;
+      margin: 0 0.2em;
+  }
+  
+  /* Tab content mobile spacing */
+  .tab-content {
+      padding: 1em 0.5em;
+  }
+  
+  /* Form improvements */
+  .form-grid {
+      grid-template-columns: 1fr;
+      gap: 0.8em;
+  }
+  
+  /* Prevent iOS zoom on form inputs */
+  input[type="text"],
+  input[type="date"], 
+  input[type="time"],
+  select,
+  textarea {
+      font-size: 16px !important;
+      padding: 0.6em;
+  }
+  
+  /* Checkbox grid mobile layout */
+  .checkbox-grid {
+      grid-template-columns: 1fr;
+      gap: 0.3em;
+  }
+  
+  /* CRITICAL: Mobile table fixes */
+  #historyTable {
+      font-size: 0.85em;
+      border: 0;
+  }
+  
+  #historyTable caption {
+      font-size: 1.3em;
+  }
+  
+  #historyTable thead {
+      border: none;
+      clip: rect(0 0 0 0);
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      padding: 0;
+      position: absolute;
+      width: 1px;
+  }
+  
+  #historyTable tr {
+      border-bottom: 3px solid #ddd;
+      display: block;
+      margin-bottom: 0.625em;
+      padding: 0.5em;
+      background: #f9f9f9;
+      border-radius: 4px;
+  }
+  
+  #historyTable td {
+      border: none;
+      border-bottom: 1px solid #eee;
+      display: block;
+      font-size: 0.8em;
+      text-align: right;
+      padding: 0.3em 0.5em;
+  }
+  
+  #historyTable td::before {
+      content: attr(data-label) ": ";
+      float: left;
+      font-weight: bold;
+      text-transform: uppercase;
+      color: #336699;
+  }
+  
+  /* Larger touch targets for buttons */
+  .edit-btn, 
+  .delete, 
+  .duplicate-btn {
+      min-height: 44px !important;
+      padding: 0.5em 1em !important;
+      margin: 3px !important;
+      font-size: 0.9em !important;
+      display: inline-block;
+      width: auto;
+  }
+  
+  /* Button container improvements */
+  #historyTable td button {
+      margin: 2px !important;
+      display: block;
+      width: 100%;
+      margin-bottom: 5px !important;
+  }
+  
+  /* Search and filter controls */
+  .filter-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5em;
+      margin-bottom: 1em;
+  }
+  
+  #searchFilter, 
+  #categoryFilter {
+      width: 100%;
+      margin: 0;
+      font-size: 16px;
+  }
+  
+  /* Dashboard grid mobile */
+  .dashboard-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1em;
+  }
+  
+  .card {
+      margin-bottom: 1em;
+  }
+  
+  /* Charts mobile */
+  .charts-grid {
+      flex-direction: column;
+  }
+  
+  .chart-card {
+      min-width: unset;
+  }
+
+}

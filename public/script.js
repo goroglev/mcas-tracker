@@ -100,17 +100,17 @@ function renderHistoryTable(list) {
     list.forEach(entry => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td>${entry.entryDate} ${entry.entryTime}</td>
-            <td>${escapeHtml(entry.itemType === 'New Food' ? entry.customItem : entry.itemType.replace(/\s*\(.*\)/, ''))}</td>
-            <td>${escapeHtml(entry.amount)}</td>
-            <td>${Array.isArray(entry.postDoseSymptoms) ? escapeHtml(entry.postDoseSymptoms.join(', ')) : ''}</td>
-            <td>${entry.symptomSeverity}</td>
-            <td>
-    		<button class="edit-btn" data-id="${entry.id}">Edit</button>
-   		<button class="duplicate-btn" data-id="${entry.id}">Duplicate</button>
-    		<button class="delete" data-id="${entry.id}">Delete</button>
-            </td>
-        `;
+    <td data-label="Date/Time">${entry.entryDate} ${entry.entryTime}</td>
+    <td data-label="Item">${escapeHtml(entry.itemType === 'New Food' ? entry.customItem : entry.itemType.replace(/\s*\(.*\)/, ''))}</td>
+    <td data-label="Amount">${escapeHtml(entry.amount)}</td>
+    <td data-label="Symptoms">${Array.isArray(entry.postDoseSymptoms) ? escapeHtml(entry.postDoseSymptoms.join(', ')) : ''}</td>
+    <td data-label="Severity">${entry.symptomSeverity}</td>
+    <td data-label="Actions">
+        <button class="edit-btn" data-id="${entry.id}">Edit</button>
+        <button class="duplicate-btn" data-id="${entry.id}">Duplicate</button>
+        <button class="delete" data-id="${entry.id}">Delete</button>
+    </td>
+`;
         tbody.appendChild(row);
         const remarksRow = document.createElement('tr'); // Add remarks and environmental factors in a collapsible row
         remarksRow.className = 'remarks-row';
