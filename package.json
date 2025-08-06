@@ -15,5 +15,9 @@
     "csv-stringify": "^6.5.2",
     "express": "^5.1.0",
     "googleapis": "^154.1.0"
+  },
+  "devDependencies": {
+    "csv-parser": "^3.2.0",
+    "dotenv": "^17.2.1"
   }
 }

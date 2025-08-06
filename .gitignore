@@ -1,5 +1,7 @@
 node_modules/
 **/*.bak
 .env
+.env.local
 combined.txt
 *.log
+mcas-tracker-09a8846fc551.json

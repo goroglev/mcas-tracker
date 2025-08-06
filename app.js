@@ -1,96 +1,211 @@
+require('dotenv').config({ path: '.env.local' });
+
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
-const { parse } = require('csv-parse/sync');
-const { stringify } = require('csv-stringify/sync');
-const bodyParser = require('body-parser');
-
+const { JWT } = require('google-auth-library');
+const { google } = require('googleapis');
 const app = express();
-const PORT = 3000;
-const CSV_FILE = path.join(__dirname, 'entries.csv');
 
-// Middleware
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(bodyParser.json());
+const credentialsBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
+let credentials;
 
-// CSV Helpers
-function readEntries() {
-  if (!fs.existsSync(CSV_FILE)) return [];
-  const data = fs.readFileSync(CSV_FILE, 'utf8');
-  return data.trim() ? parse(data, { columns: true }) : [];
+if (credentialsBase64) {
+    credentials = JSON.parse(Buffer.from(credentialsBase64, 'base64').toString());
 }
 
-function writeEntries(entries) {
-  const csv = stringify(entries, { header: true });
-  fs.writeFileSync(CSV_FILE, csv);
+const client = new google.auth.JWT(
+    {
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: ['https://www.googleapis.com/auth/spreadsheets']
+    }
+);
+
+client.authorize(function (err, tokens) {
+    if (err) {
+        console.error('Failed to authorize Google Sheets API:', err);
+    }
+});
+
+const sheets = google.sheets({ version: 'v4', auth: client });
+const bodyParser = require('body-parser'); // Added body-parser require
+
+app.use(bodyParser.json()); // Add body-parser middleware for JSON
+
+// Add logging middleware for API requests
+// app.use('/api', (req, res, next) => {
+//     console.log(`API request received: ${req.method} ${req.originalUrl}`);
+//     next(); // Pass the request to the next handler
+// });
+
+// Add route handler for the root path to serve index.html
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+async function writeEntries(entries) {
+    const headers = ['id', 'entryDate', 'entryTime', 'itemType', 'customItem', 'amount', 'postDoseSymptoms', 'symptomSeverity', 'environmentalFactors', 'remarks'];
+    const values = entries.map(entry => [
+        entry.id,
+        entry.entryDate,
+        entry.entryTime,
+        entry.itemType,
+        entry.customItem,
+        entry.amount,
+        JSON.stringify(entry.postDoseSymptoms),
+        entry.symptomSeverity,
+        JSON.stringify(entry.environmentalFactors),
+        entry.remarks
+    ]);
+
+    const dataToWrite = [headers, ...values];
+
+    try {
+        await sheets.spreadsheets.values.clear({
+            spreadsheetId: SPREADSHEET_ID,
+            range: RANGE,
+        });
+        await sheets.spreadsheets.values.update({
+            spreadsheetId: SPREADSHEET_ID,
+            range: RANGE,
+            valueInputOption: 'RAW',
+            resource: {
+                values: dataToWrite,
+            },
+        });;
+    } catch (err) {
+        throw new Error('Failed to write entries to Google Sheets');
+    }
 }
 
-// API Routes
-app.get('/api/entries', (req, res) => {
-  try {
-    res.json(readEntries());
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to read entries' });
-  }
+async function readEntries() {
+    try {
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: RANGE,
+        });
+
+
+        const rows = response.data.values;
+
+        if (!rows || rows.length === 0) {
+            return []; // No data in the sheet
+        }
+
+        // Assuming the first row is headers, process the rest
+        const headers = rows[0];
+        const entries = rows.slice(1).map(row => {
+const entry = {};
+            headers.forEach((header, index) => {
+                entry[header] = row[index] || ''; // Map columns to object properties
+});
+            return entry;
+        });
+
+        // Parse JSON string fields
+        entries.forEach(entry => {
+            if (entry.postDoseSymptoms && typeof entry.postDoseSymptoms === 'string') {
+                try {
+                    entry.postDoseSymptoms = JSON.parse(entry.postDoseSymptoms);
+                } catch (e) {
+                    console.error('Failed to parse postDoseSymptoms JSON:', e);
+                    entry.postDoseSymptoms = [];
+                }
+            } else {
+                entry.postDoseSymptoms = []; // Ensure it's an array even if empty or not a string
+            }
+
+            if (entry.environmentalFactors && typeof entry.environmentalFactors === 'string') {
+                try {
+                    entry.environmentalFactors = JSON.parse(entry.environmentalFactors);
+                } catch (e) {
+                    console.error('Failed to parse environmentalFactors JSON:', e);
+                    entry.environmentalFactors = [];
+                }
+            } else {
+                entry.environmentalFactors = []; // Ensure it's an array
+            }
+        });
+
+        return entries;
+    } catch (err) {
+        console.error('The API returned an error reading from Google Sheets:', err);
+throw new Error('Failed to read entries from Google Sheets');
+}
+}
+
+const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID; // Use environment variable for Sheet ID
+const RANGE = process.env.GOOGLE_SHEET_RANGE || 'Sheet1!A1:J'; // Use environment variable for range
+
+app.get('/api/entries', async (req, res) => {
+    try {
+        const entries = await readEntries();
+        res.json(entries);
+    } catch (err) {
+        console.error('Error in GET /api/entries:', err);
+        res.status(500).json({ error: 'Failed to retrieve entries from Google Sheets' });
+    }
 });
 
-app.post('/api/entries', (req, res) => {
-  try {
-    const entries = readEntries();
-    req.body.id = req.body.id || Date.now().toString();
-    entries.push(req.body);
-    writeEntries(entries);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to add entry' });
-  }
+app.post('/api/entries', async (req, res) => {
+    const newEntry = req.body;
+    // Ensure new entry has an ID if not provided (important for unique identification in Google Sheets)
+    if (!newEntry.id) {
+        newEntry.id = Date.now().toString();
+    }
+    try {
+        const entries = await readEntries(); // Read existing
+        entries.push(newEntry); // Add new
+        await writeEntries(entries); // Write back all
+        res.status(201).json(newEntry);
+    } catch (err) {
+        console.error('Error in POST /api/entries:', err);
+        res.status(500).json({ error: 'Failed to add entry to Google Sheets' });
+    }
 });
 
-// API: Update entry by ID (safe for filtered/sorted UI)
-app.put('/api/entries/id/:id', (req, res) => {
-  try {
-    const entries = readEntries();
+// PUT route to update an entry
+app.put('/api/entries/id/:id', async (req, res) => {
     const entryId = req.params.id;
-    const entryIndex = entries.findIndex(e => e.id === entryId);
-
-    if (entryIndex !== -1) {
-      // Preserve the original id and merge the new data
-      entries[entryIndex] = { ...entries[entryIndex], ...req.body, id: entryId };
-      writeEntries(entries);
-      res.json({ success: true });
-    } else {
-      res.status(404).json({ error: 'Entry not found' });
+    const updatedEntry = req.body;
+    try {
+        let entries = await readEntries(); // Read existing
+        const index = entries.findIndex(entry => entry.id === entryId);
+        if (index !== -1) {
+            // Update the entry, preserving the original ID
+            entries[index] = { ...updatedEntry, id: entryId };
+            await writeEntries(entries); // Write back all
+            res.json(entries[index]);
+        } else {
+            res.status(404).json({ error: 'Entry not found' });
+        }
+    } catch (err) {
+        console.error('Error in PUT /api/entries/id/:id:', err);
+        res.status(500).json({ error: 'Failed to update entry in Google Sheets' });
     }
-  } catch (err) {
-    console.error('PUT /api/entries/id/:id error:', err);
-    res.status(500).json({ error: 'Failed to update entry' });
-  }
 });
 
-// Delete by id (safe for filtered/sorted UI)
-app.delete('/api/entries/id/:id', (req, res) => {
-  try {
-    const entries = readEntries();
-    const idx = entries.findIndex(e => e.id === req.params.id);
-    if (idx !== -1) {
-      entries.splice(idx, 1);
-      writeEntries(entries);
-      res.json({ success: true });
-    } else {
-      res.status(404).json({ error: 'Entry not found' });
+// DELETE route to remove an entry
+app.delete('/api/entries/id/:id', async (req, res) => {
+    const entryId = req.params.id;
+    try {
+        let entries = await readEntries(); // Read existing
+        const initialLength = entries.length;
+        entries = entries.filter(entry => entry.id !== entryId); // Filter out the entry
+        if (entries.length < initialLength) {
+            await writeEntries(entries); // Write back the filtered list
+            res.status(200).json({ message: 'Entry deleted successfully' });
+        } else {
+            res.status(404).json({ error: 'Entry not found' });
+        }
+    } catch (err) {
+        console.error('Error in DELETE /api/entries/id/:id:', err);
+        res.status(500).json({ error: 'Failed to delete entry from Google Sheets' });
     }
-  } catch (err) {
-    console.error('DELETE /api/entries/id/:id error:', err);
-    res.status(500).json({ error: 'Failed to delete entry' });
-  }
 });
+app.use(express.static(path.join(__dirname, 'public')));
 
-// SPA Fallback (MUST BE LAST)
-app.all('/*splat', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+console.log(`Server running at http://localhost:${port}`);
 });
