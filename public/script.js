@@ -115,7 +115,7 @@ function renderHistoryTable(list) {
         const remarksRow = document.createElement('tr'); // Add remarks and environmental factors in a collapsible row
         remarksRow.className = 'remarks-row';
         const remarksContent = entry.remarks ? escapeHtml(entry.remarks.toString()) : '<em>No remarks</em>';
-        remarksRow.innerHTML = ` <td colspan="6"><div class="remarks-content">${remarksContent}</div></td>`;
+        remarksRow.innerHTML = `<td colspan="6"><div class="remarks-container">${remarksContent}</div></td>`;
         tbody.appendChild(remarksRow);
 
     });
