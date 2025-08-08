@@ -133,6 +133,64 @@ throw new Error('Failed to read entries from Google Sheets');
 }
 }
 
+async function writeNotes(notes) {
+    const headers = ['id', 'date', 'text'];
+    const values = notes.map(note => [
+        note.id,
+        note.date,
+        note.text
+    ]);
+
+    const dataToWrite = [headers, ...values];
+
+    try {
+        await sheets.spreadsheets.values.clear({
+            spreadsheetId: SPREADSHEET_ID,
+            range: 'Notes!A1:C',
+        });
+        await sheets.spreadsheets.values.update({
+            spreadsheetId: SPREADSHEET_ID,
+            range: 'Notes!A1:C',
+            valueInputOption: 'RAW',
+            resource: {
+                values: dataToWrite,
+            },
+        });
+    } catch (err) {
+        throw new Error('Failed to write notes to Google Sheets');
+    }
+}
+
+async function readNotes() {
+    try {
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: 'Notes!A1:C',
+        });
+
+        const rows = response.data.values;
+
+        if (!rows || rows.length === 0) {
+            return [];
+        }
+
+        const headers = rows[0];
+        const notes = rows.slice(1).map(row => {
+            const note = {};
+            headers.forEach((header, index) => {
+                note[header] = row[index] || '';
+            });
+            return note;
+        });
+
+        return notes;
+    } catch (err) {
+        console.error('The API returned an error reading notes from Google Sheets:', err);
+        return [];
+    }
+}
+
+
 const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID; // Use environment variable for Sheet ID
 const RANGE = process.env.GOOGLE_SHEET_RANGE || 'Sheet1!A1:J'; // Use environment variable for range
 
@@ -202,6 +260,71 @@ app.delete('/api/entries/id/:id', async (req, res) => {
         res.status(500).json({ error: 'Failed to delete entry from Google Sheets' });
     }
 });
+
+// Add before line ~170 (before app.use(express.static...))
+app.get('/api/notes', async (req, res) => {
+    try {
+        const notes = await readNotes();
+        res.json(notes);
+    } catch (err) {
+        console.error('Error in GET /api/notes:', err);
+        res.status(500).json({ error: 'Failed to retrieve notes from Google Sheets' });
+    }
+});
+
+app.post('/api/notes', async (req, res) => {
+    const newNote = req.body;
+    if (!newNote.id) {
+        newNote.id = Date.now().toString();
+    }
+    try {
+        const notes = await readNotes();
+        notes.push(newNote);
+        await writeNotes(notes);
+        res.status(201).json(newNote);
+    } catch (err) {
+        console.error('Error in POST /api/notes:', err);
+        res.status(500).json({ error: 'Failed to add note to Google Sheets' });
+    }
+});
+
+app.put('/api/notes/id/:id', async (req, res) => {
+    const noteId = req.params.id;
+    const updatedNote = req.body;
+    try {
+        let notes = await readNotes();
+        const index = notes.findIndex(note => note.id === noteId);
+        if (index !== -1) {
+            notes[index] = { ...updatedNote, id: noteId };
+            await writeNotes(notes);
+            res.json(notes[index]);
+        } else {
+            res.status(404).json({ error: 'Note not found' });
+        }
+    } catch (err) {
+        console.error('Error in PUT /api/notes/id/:id:', err);
+        res.status(500).json({ error: 'Failed to update note in Google Sheets' });
+    }
+});
+
+app.delete('/api/notes/id/:id', async (req, res) => {
+    const noteId = req.params.id;
+    try {
+        let notes = await readNotes();
+        const initialLength = notes.length;
+        notes = notes.filter(note => note.id !== noteId);
+        if (notes.length < initialLength) {
+            await writeNotes(notes);
+            res.status(200).json({ message: 'Note deleted successfully' });
+        } else {
+            res.status(404).json({ error: 'Note not found' });
+        }
+    } catch (err) {
+        console.error('Error in DELETE /api/notes/id/:id:', err);
+        res.status(500).json({ error: 'Failed to delete note from Google Sheets' });
+    }
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 

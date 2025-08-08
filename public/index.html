@@ -154,6 +154,33 @@
 <option value="Food">Food</option>
 </select>
 </div>
+<!-- Add after line ~210 (after filter-controls div) -->
+<div class="notes-controls">
+  <button id="addNoteBtn" class="add-note-btn">📝 Add Reflection</button>
+</div>
+
+<!-- Add note form modal (before closing </section> of history) -->
+<div id="noteModal" class="note-modal" style="display: none;">
+  <div class="note-modal-content">
+      <h3 id="noteModalTitle">Add Reflection</h3>
+      <form id="noteForm">
+          <input type="hidden" id="editNoteId" />
+          <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="noteDate" required />
+          </div>
+          <div class="form-group">
+              <label>Reflection</label>
+              <textarea id="noteText" rows="4" placeholder="Your thoughts, observations, or context..." required></textarea>
+          </div>
+          <div class="form-group">
+              <button type="submit" id="saveNoteBtn">Save Reflection</button>
+              <button type="button" id="cancelNoteBtn">Cancel</button>
+          </div>
+      </form>
+  </div>
+</div>
+
 <table id="historyTable">
 <thead>
 <tr>

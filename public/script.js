@@ -1,6 +1,7 @@
 // --- Global State ---
 let entries = [];
 let charts = {}; // To hold chart instances
+let notes = [];
 
 // --- Utility Functions ---
 function escapeHtml(text) {
@@ -60,18 +61,99 @@ function resetCustomTextFields() {
 }
 
 async function loadEntries() {
+    const res = await fetch('/api/entries');
+    entries = await res.json();
+    entries.sort((a, b) => new Date(`${b.entryDate}T${b.entryTime}`) - new Date(`${a.entryDate}T${a.entryTime}`));
+    
+    // Also load notes
+    await loadNotes();
+    
+    renderFilteredHistory();
+    updateDashboard();
+    populateSubstanceFilter();
+    setTimeout(() => renderDashboardCharts(), 50);
+    initializeFormState();
+}
 
-        const res = await fetch('/api/entries');
-        entries = await res.json();
-        // Sort entries descending (most recent first)
-        entries.sort((a, b) => new Date(`${b.entryDate}T${b.entryTime}`) - new Date(`${a.entryDate}T${a.entryTime}`));
+
+async function loadNotes() {
+    try {
+        const res = await fetch('/api/notes');
+        notes = await res.json();
+        notes.sort((a, b) => new Date(b.date) - new Date(a.date));
+    } catch (err) {
+        console.error('Error loading notes:', err);
+        notes = [];
+    }
+}
+
+function showNoteModal(noteId = null) {
+    const modal = document.getElementById('noteModal');
+    const title = document.getElementById('noteModalTitle');
+    const form = document.getElementById('noteForm');
+    
+    if (noteId) {
+        const note = notes.find(n => n.id === noteId);
+        if (note) {
+            title.textContent = 'Edit Reflection';
+            document.getElementById('editNoteId').value = note.id;
+            document.getElementById('noteDate').value = note.date;
+            document.getElementById('noteText').value = note.text;
+            document.getElementById('saveNoteBtn').textContent = 'Update Reflection';
+        }
+    } else {
+        title.textContent = 'Add Reflection';
+        form.reset();
+        document.getElementById('noteDate').value = new Date().toISOString().split('T');
+        document.getElementById('saveNoteBtn').textContent = 'Save Reflection';
+    }
+    
+    modal.style.display = 'block';
+}
+
+function hideNoteModal() {
+    document.getElementById('noteModal').style.display = 'none';
+    document.getElementById('noteForm').reset();
+    document.getElementById('editNoteId').value = '';
+}
+
+function renderNotesInHistory(container) {
+    notes.forEach(note => {
+        const noteDiv = document.createElement('div');
+        noteDiv.className = 'note-entry';
+        noteDiv.innerHTML = `
+            <div class="note-date">📝 ${note.date}</div>
+            <div class="note-actions">
+                <button onclick="showNoteModal('${note.id}')" title="Edit">✏️</button>
+                <button onclick="deleteNote('${note.id}')" title="Delete">🗑️</button>
+            </div>
+            <div class="note-text">${escapeHtml(note.text)}</div>
+        `;
+        container.appendChild(noteDiv);
+    });
+}
+
+async function deleteNote(noteId) {
+    if (!confirm('Are you sure you want to delete this reflection?')) return;
+    
+    try {
+        await fetch(`/api/notes/id/${noteId}`, { method: 'DELETE' });
+        await loadNotes();
         renderFilteredHistory();
-        updateDashboard();
-        populateSubstanceFilter();
-        // Delay rendering dashboard charts slightly to ensure elements are available
-        setTimeout(() => renderDashboardCharts(), 50);
-        initializeFormState();
+    } catch (err) {
+        console.error('Error deleting note:', err);
+    }
+}
 
+function duplicateNote(noteId) {
+    const note = notes.find(n => n.id === noteId);
+    if (!note) return;
+    
+    // Show modal with current date and duplicated text
+    showNoteModal();
+    document.getElementById('noteDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('noteText').value = note.text;
+    document.getElementById('saveNoteBtn').textContent = 'Save Reflection';
 }
 
 function renderFilteredHistory() {
@@ -92,34 +174,72 @@ function renderFilteredHistory() {
 function renderHistoryTable(list) {
     const tbody = document.getElementById('historyBody');
     tbody.innerHTML = '';
-    if (!list.length) {
-        tbody.innerHTML = `<tr><td colspan="6">No entries found.</td></tr>`;
+    
+    // Combine entries and notes, sorted by date
+    const combined = [
+        ...list.map(entry => ({
+            ...entry,
+            type: 'entry',
+            sortDate: new Date(`${entry.entryDate}T${entry.entryTime}`)
+        })),
+        ...(notes || []).map(note => ({
+            ...note,
+            type: 'note',
+            sortDate: new Date(note.date)
+        }))
+    ].sort((a, b) => b.sortDate - a.sortDate);
+    
+    if (!combined.length) {
+        tbody.innerHTML = `<tr><td colspan="6">No entries or reflections found.</td></tr>`;
         return;
     }
 
-    list.forEach(entry => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-    <td data-label="Date/Time">${entry.entryDate} ${entry.entryTime}</td>
-    <td data-label="Item">${escapeHtml(entry.itemType === 'New Food' ? entry.customItem : entry.itemType.replace(/\s*\(.*\)/, ''))}</td>
-    <td data-label="Amount">${escapeHtml(entry.amount)}</td>
-    <td data-label="Symptoms">${Array.isArray(entry.postDoseSymptoms) ? escapeHtml(entry.postDoseSymptoms.join(', ')) : ''}</td>
-    <td data-label="Severity">${entry.symptomSeverity}</td>
-    <td data-label="Actions">
-        <button class="edit-btn" data-id="${entry.id}">Edit</button>
-        <button class="duplicate-btn" data-id="${entry.id}">Duplicate</button>
-        <button class="delete" data-id="${entry.id}">Delete</button>
-    </td>
-`;
-        tbody.appendChild(row);
-        const remarksRow = document.createElement('tr'); // Add remarks and environmental factors in a collapsible row
-        remarksRow.className = 'remarks-row';
-        const remarksContent = entry.remarks ? escapeHtml(entry.remarks.toString()) : '<em>No remarks</em>';
-        remarksRow.innerHTML = `<td colspan="6"><div class="remarks-container">${remarksContent}</div></td>`;
-        tbody.appendChild(remarksRow);
-
+    combined.forEach(item => {
+        if (item.type === 'note') {
+            // Render note/reflection
+            const noteRow = document.createElement('tr');
+            noteRow.className = 'note-row';
+            noteRow.innerHTML = `
+                <td colspan="6" class="note-cell">
+                    <div class="note-entry">
+                        <div class="note-date">📝 Reflection - ${item.date}</div>
+                        <div class="note-actions">
+                            <button onclick="showNoteModal('${item.id}')" class="edit-btn">Edit</button>
+                            <button onclick="event.preventDefault(); event.stopPropagation(); deleteNote('${item.id}'); return false;" class="delete" type="button">Delete</button>
+                            <button onclick="duplicateNote('${item.id}')" class="duplicate-btn">Duplicate</button>
+                        </div>
+                        <div class="note-text">${escapeHtml(item.text)}</div>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(noteRow);
+        } else {
+            // Render regular entry (your existing code)
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td data-label="Date/Time">${item.entryDate} ${item.entryTime}</td>
+                <td data-label="Item">${escapeHtml(item.itemType === 'New Food' ? item.customItem : item.itemType.replace(/\s*\(.*\)/, ''))}</td>
+                <td data-label="Amount">${escapeHtml(item.amount)}</td>
+                <td data-label="Symptoms">${Array.isArray(item.postDoseSymptoms) ? escapeHtml(item.postDoseSymptoms.join(', ')) : ''}</td>
+                <td data-label="Severity">${item.symptomSeverity}</td>
+                <td data-label="Actions">
+                    <button class="edit-btn" data-id="${item.id}">Edit</button>
+                    <button class="duplicate-btn" data-id="${item.id}">Duplicate</button>
+                    <button class="delete" data-id="${item.id}">Delete</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+            
+            // Add remarks row
+            const remarksRow = document.createElement('tr');
+            remarksRow.className = 'remarks-row';
+            const remarksContent = item.remarks ? escapeHtml(item.remarks.toString()) : '<em>No remarks</em>';
+            remarksRow.innerHTML = `<td colspan="6"><div class="remarks-container">${remarksContent}</div></td>`;
+            tbody.appendChild(remarksRow);
+        }
     });
 }
+
 
 function updateDashboard() {
     const totalEntriesElement = document.getElementById('totalEntries');
@@ -440,6 +560,55 @@ function setupEventListeners() {
     // Call immediately and also after a delay to handle timing issues
     attachHighStressListener();
     setTimeout(attachHighStressListener, 100);
+
+    // Note modal event listeners
+    document.getElementById('addNoteBtn').addEventListener('click', () => {
+        showNoteModal();
+    });
+
+    document.getElementById('cancelNoteBtn').addEventListener('click', hideNoteModal);
+
+    document.getElementById('noteModal').addEventListener('click', (e) => {
+        if (e.target.id === 'noteModal') {
+            hideNoteModal();
+        }
+    });
+
+    document.getElementById('noteForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const noteId = document.getElementById('editNoteId').value;
+        const isEdit = !!noteId;
+        
+        const noteData = {
+            id: noteId || Date.now().toString(),
+            date: document.getElementById('noteDate').value,
+            text: document.getElementById('noteText').value
+        };
+        
+        try {
+            if (isEdit) {
+                await fetch(`/api/notes/id/${noteData.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(noteData)
+                });
+            } else {
+                await fetch('/api/notes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(noteData)
+                });
+            }
+            
+            await loadNotes();
+            renderFilteredHistory();
+            hideNoteModal();
+        } catch (err) {
+            console.error('Error saving note:', err);
+            alert('Error saving reflection. Please try again.');
+        }
+    });
 }
 
 function populateSubstanceFilter() {

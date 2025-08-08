@@ -532,3 +532,187 @@ button:disabled {
       min-width: unset;
   }
 }
+
+/* Notes/Reflections Styling */
+.notes-controls {
+  margin-bottom: 1em;
+  text-align: center;
+}
+
+.add-note-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 0.7em 1.5em;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95em;
+  font-weight: 600;
+}
+
+.add-note-btn:hover {
+  background: #1e7e34;
+}
+
+.note-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+}
+
+.note-modal-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 2em;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 800px;  /* Increased from 500px */
+  max-height: 85vh;  /* Slightly increased */
+  overflow-y: auto;
+}
+
+/* Larger textarea in note modal */
+.note-modal-content textarea {
+  min-height: 150px;  /* Increased from default */
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+/* Better spacing in note modal form */
+.note-modal-content .form-group {
+  margin-bottom: 1.5em;
+}
+
+.note-modal-content .form-group:last-child {
+  margin-bottom: 0;
+}
+
+.note-entry {
+  background: #fffbf0;
+  border-left: 4px solid #f39c12;
+  padding: 1em;
+  margin-bottom: 1em;
+  border-radius: 4px;
+  position: relative;
+}
+
+.note-entry .note-date {
+  font-weight: bold;
+  color: #f39c12;
+  margin-bottom: 0.5em;
+}
+
+.note-entry .note-actions {
+  position: absolute;
+  top: 0.5em;
+  right: 0.5em;
+}
+
+.note-entry .note-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-left: 0.3em;
+  font-size: 0.8em;
+  padding: 0.2em 0.4em;
+}
+
+/* Mobile responsive for notes */
+@media (max-width: 768px) {
+  .note-modal-content {
+      width: 95%;
+      max-width: none;  /* Remove max-width constraint on mobile */
+      padding: 1.5em;
+  }
+  
+  .note-modal-content textarea {
+    min-height: 120px;  /* Slightly smaller on mobile */
+  }
+
+  .note-entry {
+      font-size: 0.9em;
+  }
+}
+
+/* Note/Reflection Styling */
+.note-entry {
+  background: #fffbf0;
+  border-left: 4px solid #f39c12;
+  padding: 1em;
+  margin: 0.5em 0;
+  border-radius: 4px;
+  position: relative;
+}
+
+.note-entry .note-date {
+  font-weight: bold;
+  color: #f39c12;
+  margin-bottom: 0.5em;
+  font-size: 0.95em;
+}
+
+.note-entry .note-actions {
+  position: absolute;
+  top: 0.5em;
+  right: 0.5em;
+}
+
+.note-entry .note-actions button {
+  background: none;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  margin-left: 0.3em;
+  font-size: 0.8em;
+  padding: 0.2em 0.5em;
+  border-radius: 3px;
+}
+
+.note-entry .note-actions .edit-btn {
+  background: #336699;
+  color: white;
+  border-color: #336699;
+}
+
+.note-entry .note-actions .delete {
+  background: #dc3545;
+  color: white;
+  border-color: #dc3545;
+}
+
+.note-entry .note-actions .duplicate-btn {
+  background: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+
+.note-entry .note-text {
+  color: #333;
+  line-height: 1.5;
+  margin-top: 0.5em;
+  white-space: pre-wrap;
+}
+
+/* Mobile responsive for notes */
+@media (max-width: 768px) {
+  .note-entry .note-actions {
+      position: static;
+      margin-top: 1em;
+      text-align: center;
+  }
+  
+  .note-entry .note-actions button {
+      display: inline-block;
+      margin: 0.2em;
+      padding: 0.4em 0.8em;
+      font-size: 0.85em;
+  }
+}
+
