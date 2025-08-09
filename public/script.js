@@ -487,7 +487,6 @@ function setupEventListeners() {
 
             // Enhanced environmental factors restoration with proper text field handling
             Array.from(document.querySelectorAll('#environmentalFactors input[type="checkbox"]')).forEach(c => {
-                // environmentalFactors should already be an array from the backend
                 const envFactors = Array.isArray(entry.environmentalFactors) ? entry.environmentalFactors : [];
 
                 if (c.value === 'High Stress') {
@@ -495,12 +494,16 @@ function setupEventListeners() {
                     const stressFactor = envFactors.find(f => f.startsWith('High Stress:'));
                     if (stressFactor) {
                         c.checked = true;
-                        document.getElementById('highStressText').value = stressFactor.substring(12); // Remove "High Stress: "
+                        document.getElementById('highStressText').value = stressFactor.substring(12);
+                        document.getElementById('highStressGroup').style.display = 'block';
                     } else {
-                        // CRITICAL: Clear both checkbox and text field when not selected
                         c.checked = false;
                         document.getElementById('highStressText').value = '';
+                        document.getElementById('highStressGroup').style.display = 'none';
                     }
+                } else {
+                    // ✅ FIX: Handle all other environmental factors
+                    c.checked = envFactors.includes(c.value);
                 }
             });
 

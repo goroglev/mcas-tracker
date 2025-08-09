@@ -41,10 +41,10 @@ h1 {
   margin: 0 0.5rem;
   border: none;
   border-radius: 8px;
-  background: #e7ecf3;   /* Slightly lighter inactive background */
+  background: #e7ecf3;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #333;           /* Strong, dark text */
+  color: #333;
   font-weight: 600;
 }
 
@@ -54,8 +54,8 @@ h1 {
 }
 
 .nav-btn:hover:not(.active) {
-  background: #d4dbe7;   /* Just a bit darker on hover */
-  color: #222;           /* Slightly darker text for contrast */
+  background: #d4dbe7;
+  color: #222;
 }
 
 .tab-content {
@@ -63,8 +63,9 @@ h1 {
   background: #fff;
   padding: 1.5em;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
+
 .tab-content.active {
   display: block;
 }
@@ -136,6 +137,7 @@ button {
   font-weight: 600;
   transition: background 0.2s;
 }
+
 button:hover {
   background: #25476a;
 }
@@ -145,36 +147,37 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* Table/History */
 #historyTable {
   width: 100%;
   border-collapse: collapse;
   margin-top: 1em;
 }
+
 #historyTable th,
 #historyTable td {
   border: 1px solid #ddd;
   padding: 0.5em;
   text-align: left;
 }
+
 #historyTable th {
   background: #f0f0f0;
 }
 
+/* Dashboard/Charts */
 .charts-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 1em;
   margin-top: 2em;
 }
+
 .chart-card {
   flex: 1 1 45%;
   min-width: 300px;
 }
-@media(max-width: 768px) {
-  .charts-grid {
-    flex-direction: column;
-  }
-}
+
 .remarks-row td {
   background: #f8f8f8;
   font-size: 0.98em;
@@ -183,6 +186,7 @@ button:disabled {
   padding-bottom: 0.7em;
   border-top: none;
 }
+
 .remarks-content {
   max-height: 6em;
   overflow-y: auto;
@@ -204,7 +208,6 @@ button:disabled {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  /* Remove browser variations */
   -webkit-appearance: none;
   appearance: none;
   height: 8px;
@@ -213,7 +216,6 @@ button:disabled {
   outline: none;
 }
 
-/* Custom thumb for consistent positioning */
 #symptomSeverity::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -272,6 +274,7 @@ button:disabled {
   margin-right: 1.2em;
   margin-bottom: 0.4em;
 }
+
 .save-btn:hover {
   background: #25476a;
 }
@@ -295,245 +298,58 @@ button:disabled {
   font-size: 1em;
   margin-top: 0.3em;
 }
+
 .clear-link:hover {
   color: #25476a;
   text-decoration: underline;
 }
-/* Styling for the new trend filter dropdown */
+
+/* Dashboard trend filter */
 .trend-filter {
-    display: flex;
-    align-items: center;
-    gap: 0.5em;
-    margin-bottom: 1.2em;
-    padding-bottom: 1em;
-    border-bottom: 1px solid #e7ecf3;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 1.2em;
+  padding-bottom: 1em;
+  border-bottom: 1px solid #e7ecf3;
 }
 
 .trend-filter label {
-    font-weight: 500;
-    color: #555;
-    font-size: 0.95em;
+  font-weight: 500;
+  color: #555;
+  font-size: 0.95em;
 }
 
 #trendSubstanceFilter {
-    padding: 0.4em 0.7em;
-    border-radius: 4px;
-    border: 1px solid #c7d1e0;
-    background: #fff;
-    font-size: 0.95em;
+  padding: 0.4em 0.7em;
+  border-radius: 4px;
+  border: 1px solid #c7d1e0;
+  background: #fff;
+  font-size: 0.95em;
 }
+
 .duplicate-btn {
-    background: #28a745;
-    color: white;
-    border: none;
-    padding: 0.4em 0.8em;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9em;
-    margin: 0 2px;
-    transition: background 0.2s;
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 0.4em 0.8em;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  margin: 0 2px;
+  transition: background 0.2s;
 }
 
 .duplicate-btn:hover {
-    background: #1e7e34;
+  background: #1e7e34;
 }
 
-/* Ensure action buttons are properly spaced */
 #historyTable td button {
-    margin: 0 2px;
-    font-size: 0.85em;
+  margin: 0 2px;
+  font-size: 0.85em;
 }
 
-/* Combined Mobile Improvements with Alignment Fixes */
-@media (max-width: 768px) {
-
-  /* Container adjustments */
-  .container {
-      padding: 10px;
-  }
-
-  /* Navigation improvements */
-  .nav-btn {
-      padding: 0.6em 0.8em;
-      font-size: 0.9em;
-      margin: 0 0.2em;
-  }
-
-  /* Tab content mobile spacing */
-  .tab-content {
-      padding: 1em 0.5em;
-  }
-
-  /* Form improvements */
-  .form-grid {
-      grid-template-columns: 1fr;
-      gap: 0.8em;
-  }
-
-  /* Prevent iOS zoom on form inputs */
-  input[type="text"],
-  input[type="date"], 
-  input[type="time"],
-  select,
-  textarea {
-      font-size: 16px !important;
-      padding: 0.6em;
-  }
-
-  /* Checkbox grid mobile layout */
-  .checkbox-grid {
-      grid-template-columns: 1fr;
-      gap: 0.3em;
-  }
-
-  /* CRITICAL: Mobile table fixes */
-  #historyTable {
-      font-size: 0.85em;
-      border: 0;
-  }
-
-  #historyTable caption {
-      font-size: 1.3em;
-  }
-
-  #historyTable thead {
-      border: none;
-      clip: rect(0 0 0 0);
-      height: 1px;
-      margin: -1px;
-      overflow: hidden;
-      padding: 0;
-      position: absolute;
-      width: 1px;
-  }
-
-  #historyTable tr {
-      border-bottom: 3px solid #ccc !important;;
-      display: block;
-      margin-bottom: 0.625em;
-      padding: 0.5em;
-      background: #f9f9f9;
-      border-radius: 4px;
-  }
-
-  /* Better record separation 
-      margin-bottom: 30px !important;
-  }*/
-
-  /* Alternating backgrounds for better distinction */
-  #historyTable tbody tr:nth-child(even) {
-      background-color: #f7fbff;
-  }
-
-  #historyTable td {
-      border: none;
-      border-bottom: 1px solid #ddd;
-      display: block;
-      font-size: 0.83em;
-      text-align: right;
-      /*padding: 0.35em 0.5em;*/
-      padding-top: 20px;
-      min-height: 30px;
-  }
-
-  #historyTable td::before {
-      content: attr(data-label) ": ";
-      float: left;
-      font-weight: bold;
-      text-transform: uppercase;
-      color: #336699;
-  }
-
-  /* Distinct remarks styling */
-  .remarks-container {
-      background-color: #f0f8ff;
-      border-left: 4px solid #336699;
-      padding: 1em;
-      margin: 0;
-      border-radius: 6px;
-      font-style: italic;
-      color: #555;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      text-indent: 0;
-  }
-
-  /* Fix severity column alignment */
-  #historyTable td[data-label='Severity'] {
-      text-align: center;
-      font-weight: 600;
-      color: #336699;
-  }
-
-  #historyTable td[data-label='Actions']::before {
-    padding-bottom: 20px;
- }
-  /* Larger touch targets for buttons */
-  .edit-btn, 
-  .delete, 
-  .duplicate-btn {
-      min-height: 44px !important;
-      padding: 0.5em 1em !important;
-      margin: 3px !important;
-      font-size: 0.9em !important;
-      display: inline-block;
-      width: auto;
-  }
-
-  .edit-btn {
-    margin-top: 20px;
-  }
-
-  /* Button container improvements */
-  #historyTable td button {
-      margin: 8px 0 !important;
-      display: block;
-      width: 100%;
-  }
-
-  /* Actions buttons better layout */
-  #historyTable td[data-label='Actions'] > button {
-      margin: 8px 0;
-      display: block;
-      width: 100%;
-  }
-
-  /* Search and filter controls */
-  .filter-controls {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5em;
-      margin-bottom: 1em;
-  }
-
-  #searchFilter, 
-  #categoryFilter {
-      width: 100%;
-      margin: 0;
-      font-size: 16px;
-  }
-
-  /* Dashboard grid mobile */
-  .dashboard-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 1em;
-  }
-
-  .card {
-      margin-bottom: 1em;
-  }
-
-  /* Charts mobile */
-  .charts-grid {
-      flex-direction: column;
-  }
-
-  .chart-card {
-      min-width: unset;
-  }
-}
-
-/* Notes/Reflections Styling */
+/* Notes/Reflections Styling - Merged Duplicates Below */
 .notes-controls {
   margin-bottom: 1em;
   text-align: center;
@@ -560,7 +376,7 @@ button:disabled {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   z-index: 1000;
 }
 
@@ -573,20 +389,19 @@ button:disabled {
   padding: 2em;
   border-radius: 8px;
   width: 90%;
-  max-width: 800px;  /* Increased from 500px */
-  max-height: 85vh;  /* Slightly increased */
+  max-width: 800px;
+  max-height: 85vh;
   overflow-y: auto;
 }
 
 /* Larger textarea in note modal */
 .note-modal-content textarea {
-  min-height: 150px;  /* Increased from default */
+  min-height: 150px;
   resize: vertical;
   font-family: inherit;
   line-height: 1.5;
 }
 
-/* Better spacing in note modal form */
 .note-modal-content .form-group {
   margin-bottom: 1.5em;
 }
@@ -595,54 +410,6 @@ button:disabled {
   margin-bottom: 0;
 }
 
-.note-entry {
-  background: #fffbf0;
-  border-left: 4px solid #f39c12;
-  padding: 1em;
-  margin-bottom: 1em;
-  border-radius: 4px;
-  position: relative;
-}
-
-.note-entry .note-date {
-  font-weight: bold;
-  color: #f39c12;
-  margin-bottom: 0.5em;
-}
-
-.note-entry .note-actions {
-  position: absolute;
-  top: 0.5em;
-  right: 0.5em;
-}
-
-.note-entry .note-actions button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  margin-left: 0.3em;
-  font-size: 0.8em;
-  padding: 0.2em 0.4em;
-}
-
-/* Mobile responsive for notes */
-@media (max-width: 768px) {
-  .note-modal-content {
-      width: 95%;
-      max-width: none;  /* Remove max-width constraint on mobile */
-      padding: 1.5em;
-  }
-  
-  .note-modal-content textarea {
-    min-height: 120px;  /* Slightly smaller on mobile */
-  }
-
-  .note-entry {
-      font-size: 0.9em;
-  }
-}
-
-/* Note/Reflection Styling */
 .note-entry {
   background: #fffbf0;
   border-left: 4px solid #f39c12;
@@ -700,19 +467,206 @@ button:disabled {
   white-space: pre-wrap;
 }
 
-/* Mobile responsive for notes */
 @media (max-width: 768px) {
-  .note-entry .note-actions {
-      position: static;
-      margin-top: 1em;
-      text-align: center;
+
+  /* Charts Mobile */
+  .charts-grid {
+    flex-direction: column;
   }
-  
+
+  /* Notes modal content */
+  .note-modal-content {
+    width: 95%;
+    max-width: none;
+    padding: 1.5em;
+  }
+
+  .note-modal-content textarea {
+    min-height: 120px;
+  }
+
+  .note-entry {
+    font-size: 0.9em;
+  }
+
+  /* Tab content mobile spacing */
+  .tab-content {
+    padding: 1em 0.5em;
+  }
+
+  /* Form improvements */
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 0.8em;
+  }
+
+  /* Prevent iOS zoom on form inputs */
+  input[type="text"],
+  input[type="date"],
+  input[type="time"],
+  select,
+  textarea {
+    font-size: 16px !important;
+    padding: 0.6em;
+  }
+
+  /* Checkbox grid mobile layout */
+  .checkbox-grid {
+    grid-template-columns: 1fr;
+    gap: 0.3em;
+  }
+
+  /* Table mobile fixes */
+  #historyTable {
+    font-size: 0.85em;
+    border: 0;
+  }
+
+  #historyTable caption {
+    font-size: 1.3em;
+  }
+
+  #historyTable thead {
+    border: none;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+  }
+
+  #historyTable tr {
+    border-bottom: 3px solid #ccc !important;
+    ;
+    display: block;
+    margin-bottom: 0.625em;
+    padding: 0.5em;
+    background: #f9f9f9;
+    border-radius: 4px;
+  }
+
+  #historyTable tbody tr {
+    margin-bottom: 30px !important;
+  }
+
+  #historyTable tbody tr:nth-child(even) {
+    background-color: #f7fbff;
+  }
+
+  #historyTable td {
+    border: none;
+    border-bottom: 1px solid #ddd;
+    display: block;
+    font-size: 0.83em;
+    text-align: right;
+    padding-top: 20px;
+    min-height: 30px;
+  }
+
+  #historyTable td:empty {
+    min-height: 20px;
+    padding: 0.3em 0;
+    border: none;
+  }
+
+  #historyTable td::before {
+    content: attr(data-label) ": ";
+    float: left;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: #336699;
+  }
+
+  .remarks-container {
+    background-color: #f0f8ff;
+    border-left: 4px solid #336699;
+    padding: 1em;
+    margin: 0;
+    border-radius: 6px;
+    font-style: italic;
+    color: #555;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    text-indent: 0;
+  }
+
+  #historyTable td[data-label='Severity'] {
+    text-align: center;
+    font-weight: 600;
+    color: #336699;
+  }
+
+  #historyTable td[data-label='Actions']::before {
+    padding-bottom: 20px;
+  }
+
+  .edit-btn,
+  .delete,
+  .duplicate-btn {
+    min-height: 44px !important;
+    padding: 0.5em 1em !important;
+    margin: 3px !important;
+    font-size: 0.9em !important;
+    display: inline-block;
+    width: auto;
+  }
+
+  .edit-btn {
+    margin-top: 20px;
+  }
+
+  #historyTable td button {
+    margin: 8px 0 !important;
+    display: block;
+    width: 100%;
+  }
+
+  #historyTable td[data-label='Actions']>button {
+    margin: 8px 0;
+    display: block;
+    width: 100%;
+  }
+
+  .filter-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    margin-bottom: 1em;
+  }
+
+  #searchFilter,
+  #categoryFilter {
+    width: 100%;
+    margin: 0;
+    font-size: 16px;
+  }
+
+  .dashboard-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+  }
+
+  .card {
+    margin-bottom: 1em;
+  }
+
+  .chart-card {
+    min-width: unset;
+  }
+
+  /* Note-entry actions for mobile */
+  .note-entry .note-actions {
+    position: static;
+    margin-top: 1em;
+    text-align: center;
+  }
+
   .note-entry .note-actions button {
-      display: inline-block;
-      margin: 0.2em;
-      padding: 0.4em 0.8em;
-      font-size: 0.85em;
+    display: inline-block;
+    margin: 0.2em;
+    padding: 0.4em 0.8em;
+    font-size: 0.85em;
   }
 }
-
