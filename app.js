@@ -43,13 +43,13 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 async function writeEntries(entries) {
-    const headers = ['id', 'entryDate', 'entryTime', 'itemType', 'customItem', 'amount', 'postDoseSymptoms', 'symptomSeverity', 'environmentalFactors', 'remarks'];
+    const headers = ['id', 'entryDate', 'entryTime', 'substanceType', 'substanceName', 'amount', 'postDoseSymptoms', 'symptomSeverity', 'environmentalFactors', 'remarks'];
     const values = entries.map(entry => [
         entry.id,
         entry.entryDate,
         entry.entryTime,
-        entry.itemType,
-        entry.customItem,
+        entry.substanceType,
+        entry.substanceName,
         entry.amount,
         JSON.stringify(entry.postDoseSymptoms),
         entry.symptomSeverity,
@@ -190,6 +190,49 @@ async function readNotes() {
     }
 }
 
+// Substance management functions
+async function readSubstances(type) {
+    const sheetName = type.charAt(0).toUpperCase() + type.slice(1) + 's'; // Medications, Supplements, Foods
+    try {
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: `${sheetName}!A1:B`,
+        });
+        
+        const rows = response.data.values;
+        if (!rows || rows.length === 0) return [];
+        
+        const headers = rows[0];
+        return rows.slice(1).map(row => ({
+            id: row[0] || '',
+            name: row[1] || ''
+        }));
+    } catch (err) {
+        console.error(`Error reading ${type}s:`, err);
+        return [];
+    }
+}
+
+async function addSubstance(type, name) {
+    const sheetName = type.charAt(0).toUpperCase() + type.slice(1) + 's';
+    const id = Date.now().toString();
+    
+    try {
+        await sheets.spreadsheets.values.append({
+            spreadsheetId: SPREADSHEET_ID,
+            range: `${sheetName}!A:B`,
+            valueInputOption: 'RAW',
+            requestBody: {
+                values: [[id, name]]
+            }
+        });
+        return { id, name };
+    } catch (err) {
+        console.error(`Error adding ${type}:`, err);
+        throw err;
+    }
+}
+
 
 const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID; // Use environment variable for Sheet ID
 const RANGE = process.env.GOOGLE_SHEET_RANGE || 'Sheet1!A1:J'; // Use environment variable for range
@@ -324,6 +367,26 @@ app.delete('/api/notes/id/:id', async (req, res) => {
         res.status(500).json({ error: 'Failed to delete note from Google Sheets' });
     }
 });
+
+// Substance API endpoints
+app.get('/api/substances/:type', async (req, res) => {
+    try {
+        const substances = await readSubstances(req.params.type);
+        res.json(substances);
+    } catch (err) {
+        res.status(500).json({ error: `Failed to retrieve ${req.params.type}s` });
+    }
+});
+
+app.post('/api/substances/:type', async (req, res) => {
+    try {
+        const substance = await addSubstance(req.params.type, req.body.name);
+        res.status(201).json(substance);
+    } catch (err) {
+        res.status(500).json({ error: `Failed to add ${req.params.type}` });
+    }
+});
+
 
 app.use(express.static(path.join(__dirname, 'public')));
 

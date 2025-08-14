@@ -3,6 +3,11 @@ let entries = [];
 let charts = {}; // To hold chart instances
 let notes = [];
 
+let medicationsList = [];
+let supplementsList = [];
+let foodsList = [];
+
+
 // --- Utility Functions ---
 function escapeHtml(text) {
     if (!text) return '';
@@ -60,13 +65,29 @@ function resetCustomTextFields() {
     }
 }
 
+function normalizeSubstanceType(type) {
+    const mapping = {
+        'Food': 'food',
+        'Medication': 'medication',
+        'Supplement': 'supplement'
+    };
+    return mapping[type] || (type || '').toLowerCase();
+}
+
 async function loadEntries() {
     const res = await fetch('/api/entries');
-    entries = await res.json();
+    const rawEntries = await res.json();
+    
+    // ✅ Normalize substanceType after loading
+    entries = rawEntries.map(entry => ({
+        ...entry,
+        substanceType: normalizeSubstanceType(entry.substanceType)
+    }));
     entries.sort((a, b) => new Date(`${b.entryDate}T${b.entryTime}`) - new Date(`${a.entryDate}T${a.entryTime}`));
     
     // Also load notes
     await loadNotes();
+    await loadSubstances();
     
     renderFilteredHistory();
     updateDashboard();
@@ -160,12 +181,12 @@ function renderFilteredHistory() {
     const category = document.getElementById('categoryFilter').value;
     const search = document.getElementById('searchFilter').value.toLowerCase();
     let filtered = entries.filter(e => {
-        const itemText = (e.itemType === 'New Food' ? e.customItem : e.itemType) || '';
+        // ✅ Use new structure for filtering
         const matchSearch = Object.values(e).some(v => String(v).toLowerCase().includes(search));
         const matchCategory = !category ||
-            (category === 'Medication' && itemText.includes('(medication)')) ||
-            (category === 'Supplement' && itemText.includes('(supplement)')) ||
-            (category === 'Food' && e.itemType === 'New Food');
+            (category === 'Medication' && e.substanceType === 'medication') ||
+            (category === 'Supplement' && e.substanceType === 'supplement') ||
+            (category === 'Food' && e.substanceType === 'food');
         return matchSearch && matchCategory;
     });
     renderHistoryTable(filtered);
@@ -216,18 +237,20 @@ function renderHistoryTable(list) {
         } else {
             // Render regular entry (your existing code)
             const row = document.createElement('tr');
-            row.innerHTML = `
-                <td data-label="Date/Time">${item.entryDate} ${item.entryTime}</td>
-                <td data-label="Item">${escapeHtml(item.itemType === 'New Food' ? item.customItem : item.itemType.replace(/\s*\(.*\)/, ''))}</td>
-                <td data-label="Amount">${escapeHtml(item.amount)}</td>
-                <td data-label="Symptoms">${Array.isArray(item.postDoseSymptoms) ? escapeHtml(item.postDoseSymptoms.join(', ')) : ''}</td>
-                <td data-label="Severity">${item.symptomSeverity}</td>
-                <td data-label="Actions">
-                    <button class="edit-btn" data-id="${item.id}">Edit</button>
-                    <button class="duplicate-btn" data-id="${item.id}">Duplicate</button>
-                    <button class="delete" data-id="${item.id}">Delete</button>
-                </td>
-            `;
+// In the regular entry rendering section, change this line:
+row.innerHTML = `
+    <td data-label="Date/Time">${item.entryDate} ${item.entryTime}</td>
+    <td data-label="Item">${escapeHtml(item.substanceName || 'Unknown')}</td>
+    <td data-label="Amount">${escapeHtml(item.amount)}</td>
+    <td data-label="Symptoms">${Array.isArray(item.postDoseSymptoms) ? escapeHtml(item.postDoseSymptoms.join(', ')) : ''}</td>
+    <td data-label="Severity">${item.symptomSeverity}</td>
+    <td data-label="Actions">
+        <button class="edit-btn" data-id="${item.id}">Edit</button>
+        <button class="duplicate-btn" data-id="${item.id}">Duplicate</button>
+        <button class="delete" data-id="${item.id}">Delete</button>
+    </td>
+`;
+
             tbody.appendChild(row);
             
             // Add remarks row
@@ -240,28 +263,55 @@ function renderHistoryTable(list) {
     });
 }
 
-
 function updateDashboard() {
+    // Total entries
     const totalEntriesElement = document.getElementById('totalEntries');
     if (totalEntriesElement) {
         totalEntriesElement.textContent = entries.length;
     }
+    
+    // Today's entries
     const todayStr = new Date().toISOString().split('T')[0];
-    const severities = entries.map(e => parseInt(e.symptomSeverity)).filter(n => !isNaN(n));
-    document.getElementById('avgSeverity').textContent = severities.length ? (severities.reduce((a, b) => a + b, 0) / severities.length).toFixed(1) : '0.0';
-    const counts = {};
-
-    entries.forEach(e => {
-        const item = e.itemType === 'New Food' ? e.customItem : e.itemType.replace(/\s*\(.*\)/, '');
-        if (item) counts[item] = (counts[item] || 0) + 1;
-    });
-
-    const topItem = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-    document.getElementById('mostTracked').textContent = topItem ? `${topItem[0]} (${topItem[1]})` : 'None';
-
     const todayEntriesElement = document.getElementById('todayEntries');
     if (todayEntriesElement) {
         todayEntriesElement.textContent = entries.filter(e => e.entryDate === todayStr).length;
+    }
+    
+    // Average severity
+    const severities = entries.map(e => parseInt(e.symptomSeverity)).filter(n => !isNaN(n));
+    const avgSeverityElement = document.getElementById('avgSeverity');
+    if (avgSeverityElement) {
+        avgSeverityElement.textContent = severities.length ? 
+            (severities.reduce((a, b) => a + b, 0) / severities.length).toFixed(1) : '0.0';
+    }
+    
+    // Most tracked item - completely rewritten
+    const mostTrackedElement = document.getElementById('mostTracked');
+    if (mostTrackedElement) {
+        const substanceCounts = {};
+        
+        // Count each substance
+        for (const entry of entries) {
+            if (entry.substanceName && entry.substanceName.trim()) {
+                const name = entry.substanceName.trim();
+                substanceCounts[name] = (substanceCounts[name] || 0) + 1;
+            }
+        }
+        
+        // Find the most frequent substance
+        let maxCount = 0;
+        let mostTrackedSubstance = '';
+        
+        for (const [substance, count] of Object.entries(substanceCounts)) {
+            if (count > maxCount) {
+                maxCount = count;
+                mostTrackedSubstance = substance;
+            }
+        }
+        
+        // Set the display text
+        mostTrackedElement.textContent = mostTrackedSubstance ? 
+            `${mostTrackedSubstance} (${maxCount})` : 'None';
     }
 }
 
@@ -306,7 +356,8 @@ function renderAnalysisCharts() {
 function getSeverityChartData(substance = 'all') {
     let dataSet = [...entries];
     if (substance !== 'all') {
-        dataSet = dataSet.filter(e => { const item = e.itemType === 'New Food' ? e.customItem : e.itemType.replace(/\s*\(.*\)/, ''); return item === substance; });
+        // ✅ Use new structure
+        dataSet = dataSet.filter(e => e.substanceName === substance);
     }
     dataSet.sort((a, b) => new Date(`${a.entryDate}T${a.entryTime}`) - new Date(`${b.entryDate}T${b.entryTime}`));
     return {
@@ -314,6 +365,7 @@ function getSeverityChartData(substance = 'all') {
         datasets: [{ label: 'Severity', data: dataSet.map(e => parseInt(e.symptomSeverity)), borderColor: 'rgb(50, 184, 198)', fill: false, tension: 0.1 }]
     };
 }
+
 
 function getSymptomChartData() {
     const symptomCounts = {};
@@ -345,43 +397,63 @@ function getEnvironmentalFactors() {
 
 function clearForm() {
     document.getElementById('entryForm').reset();
-    document.getElementById('customItemGroup').style.display = 'none';
+    
+    // ❌ Remove this line - customItemGroup no longer exists
+    // document.getElementById('customItemGroup').style.display = 'none';
+    
+    // ✅ Reset new substance fields instead
+    const newSubstanceGroup = document.getElementById('newSubstanceGroup');
+    if (newSubstanceGroup) newSubstanceGroup.style.display = 'none';
+    
+    const substanceName = document.getElementById('substanceName');
+    if (substanceName) {
+        substanceName.disabled = true;
+        substanceName.innerHTML = '<option value="">First select type...</option>';
+    }
+
     document.getElementById('severityValue').textContent = '1';
     document.getElementById('editId').value = '';
     document.querySelector('#entryForm button[type="submit"]').textContent = 'Save Entry';
 
-    // Clear all custom text fields and their visibility
+    // Clear high stress fields
     const highStressGroup = document.getElementById('highStressGroup');
     const highStressText = document.getElementById('highStressText');
     if (highStressGroup) highStressGroup.style.display = 'none';
     if (highStressText) highStressText.value = '';
 
-    // Reset custom text fields
     resetCustomTextFields();
 }
 
-function duplicateEntry(id) {
 
+function duplicateEntry(id) {
     const entry = entries.find(e => e.id === id);
     if (!entry) return;
-    // Clear the form first
+    
     clearForm();
 
     // Set current date and time
     const now = new Date();
-    const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD format
-    const currentTime = now.toTimeString().slice(0, 5);   // HH:MM format
+    const currentDate = now.toISOString().split('T')[0];
+    const currentTime = now.toTimeString().slice(0, 5);
 
     // NO editId - this creates a new entry
     document.getElementById('editId').value = '';
-
-    // Set current timestamp
     document.getElementById('entryDate').value = currentDate;
     document.getElementById('entryTime').value = currentTime;
 
-    // Copy all other data from original entry
-    document.getElementById('itemType').value = entry.itemType;
-    document.getElementById('customItem').value = entry.customItem || '';
+    // ✅ Set new substance fields instead of old ones
+    if (entry.substanceType) {
+        document.getElementById('substanceType').value = entry.substanceType;
+        populateSubstanceDropdown(entry.substanceType);
+        
+        // Wait for dropdown to populate, then set the value
+        setTimeout(() => {
+            if (entry.substanceName) {
+                document.getElementById('substanceName').value = entry.substanceName;
+            }
+        }, 100);
+    }
+
     document.getElementById('amount').value = entry.amount;
     document.getElementById('symptomSeverity').value = entry.symptomSeverity;
     document.getElementById('severityValue').textContent = entry.symptomSeverity;
@@ -392,7 +464,7 @@ function duplicateEntry(id) {
         c.checked = (entry.postDoseSymptoms || []).includes(c.value);
     });
 
-    // Restore environmental factors with proper text field handling and fix typo
+    // Restore environmental factors
     Array.from(document.querySelectorAll('#environmentalFactors input[type="checkbox"]')).forEach(c => {
         const envFactors = (entry.environmentalFactors || []);
 
@@ -412,13 +484,7 @@ function duplicateEntry(id) {
         }
     });
 
-    // Show custom item group if needed
-    document.getElementById('customItemGroup').style.display = (entry.itemType === 'New Food') ? 'block' : 'none';
-
-    // Set button text to indicate this is a new entry
     document.querySelector('#entryForm button[type="submit"]').textContent = 'Save Entry';
-
-    // Switch to entry tab for editing
     switchTab('entry');
 }
 
@@ -431,19 +497,44 @@ function setupEventListeners() {
         e.preventDefault();
         const editId = document.getElementById('editId').value;
         const isEdit = !!editId;
+        
+        const substanceType = document.getElementById('substanceType').value;
+        const substanceNameSelect = document.getElementById('substanceName').value;
+        let finalSubstanceName = substanceNameSelect;
+        
+        // ✅ Check if adding new substance
+        if (substanceNameSelect === '__NEW__') {
+            const newName = document.getElementById('newSubstanceName').value.trim();
+            if (!newName) {
+                alert('Please enter a substance name');
+                return;
+            }
+            
+            try {
+                // Add to Google Sheets using your existing API
+                await handleNewSubstance(substanceType, newName);
+                finalSubstanceName = newName;
+                console.log(`Added new ${substanceType}: ${newName}`);
+            } catch (err) {
+                console.error('Failed to add new substance:', err);
+                alert('Failed to add new substance. Please try again.');
+                return;
+            }
+        }
+        
         const data = {
             id: editId || Date.now().toString(),
             entryDate: document.getElementById('entryDate').value,
             entryTime: document.getElementById('entryTime').value,
-            itemType: document.getElementById('itemType').value,
-            customItem: document.getElementById('customItem').value,
+            substanceType: substanceType,
+            substanceName: finalSubstanceName, // ✅ Use the final name
             amount: document.getElementById('amount').value,
             postDoseSymptoms: Array.from(document.querySelectorAll('#postDoseSymptoms input[type="checkbox"]:checked')).map(c => c.value),
             symptomSeverity: document.getElementById('symptomSeverity').value,
-            environmentalFactors: getEnvironmentalFactors(), // This returns an array
+            environmentalFactors: getEnvironmentalFactors(),
             remarks: document.getElementById('remarks').value
         };
-
+    
         if (isEdit) {
             await fetch(`/api/entries/id/${data.id}`, {
                 method: 'PUT',
@@ -457,79 +548,90 @@ function setupEventListeners() {
                 body: JSON.stringify(data)
             });
         }
-
+    
         await loadEntries();
         clearForm();
-    });
+    });    
 
     document.getElementById('historyBody').addEventListener('click', function (e) {
         const id = e.target.dataset.id;
-        if (e.target.matches('.edit-btn')) {
-            const entry = entries.find(e => e.id === id);
-            if (!entry) return;
+// In your setupEventListeners() function, in the historyBody click handler:
+// In your setupEventListeners() function, replace the edit-btn handler with this:
+// In your setupEventListeners() function, replace the edit-btn handler with:
+if (e.target.matches('.edit-btn')) {
+    const entry = entries.find(e => e.id === id);
+    if (!entry) return;
 
-            document.getElementById('editId').value = entry.id;
-            document.getElementById('entryDate').value = entry.entryDate;
-            document.getElementById('entryTime').value = entry.entryTime;
-            document.getElementById('itemType').value = entry.itemType;
-            document.getElementById('customItem').value = entry.customItem || '';
-            document.getElementById('amount').value = entry.amount;
-            document.getElementById('symptomSeverity').value = entry.symptomSeverity;
-            document.getElementById('severityValue').textContent = entry.symptomSeverity;
-            document.getElementById('remarks').value = entry.remarks || '';
+    document.getElementById('editId').value = entry.id;
+    document.getElementById('entryDate').value = entry.entryDate;
+    document.getElementById('entryTime').value = entry.entryTime;
+    
+    // ✅ NEW: Handle substance fields properly
+    if (entry.substanceType && entry.substanceName) {
+        // Set the substance type first
+        document.getElementById('substanceType').value = entry.substanceType;
+        
+        // Populate the dropdown for this type
+        populateSubstanceDropdown(entry.substanceType);
+        
+        // Set the substance name after dropdown is populated
+        setTimeout(() => {
+            const substanceNameEl = document.getElementById('substanceName');
+            substanceNameEl.value = entry.substanceName;
+            
+            // Debug: confirm the value was set
+            console.log(`Set substance: ${entry.substanceName}, actual: ${substanceNameEl.value}`);
+        }, 100);
+    }
 
-            // Restore symptoms checkboxes
-            Array.from(document.querySelectorAll('#postDoseSymptoms input[type="checkbox"]')).forEach(c => {
-                // postDoseSymptoms should already be an array from the backend
-                const symptoms = Array.isArray(entry.postDoseSymptoms) ? entry.postDoseSymptoms : [];
-                c.checked = symptoms.includes(c.value);
-            });
+    document.getElementById('amount').value = entry.amount;
+    document.getElementById('symptomSeverity').value = entry.symptomSeverity;
+    document.getElementById('severityValue').textContent = entry.symptomSeverity;
+    document.getElementById('remarks').value = entry.remarks || '';
 
-            // Enhanced environmental factors restoration with proper text field handling
-            Array.from(document.querySelectorAll('#environmentalFactors input[type="checkbox"]')).forEach(c => {
-                const envFactors = Array.isArray(entry.environmentalFactors) ? entry.environmentalFactors : [];
+    // Restore symptoms checkboxes
+    Array.from(document.querySelectorAll('#postDoseSymptoms input[type="checkbox"]')).forEach(c => {
+        const symptoms = Array.isArray(entry.postDoseSymptoms) ? entry.postDoseSymptoms : 
+                        (entry.postDoseSymptoms ? JSON.parse(entry.postDoseSymptoms) : []);
+        c.checked = symptoms.includes(c.value);
+    });
 
-                if (c.value === 'High Stress') {
-                    // Check if any factor starts with "High Stress:"
-                    const stressFactor = envFactors.find(f => f.startsWith('High Stress:'));
-                    if (stressFactor) {
-                        c.checked = true;
-                        document.getElementById('highStressText').value = stressFactor.substring(12);
-                        document.getElementById('highStressGroup').style.display = 'block';
-                    } else {
-                        c.checked = false;
-                        document.getElementById('highStressText').value = '';
-                        document.getElementById('highStressGroup').style.display = 'none';
-                    }
-                } else {
-                    // ✅ FIX: Handle all other environmental factors
-                    c.checked = envFactors.includes(c.value);
-                }
-            });
+    // Restore environmental factors
+    Array.from(document.querySelectorAll('#environmentalFactors input[type="checkbox"]')).forEach(c => {
+        const envFactors = Array.isArray(entry.environmentalFactors) ? entry.environmentalFactors :
+                          (entry.environmentalFactors ? JSON.parse(entry.environmentalFactors) : []);
 
-            document.getElementById('customItemGroup').style.display = (entry.itemType === 'New Food') ? 'block' : 'none';
-            document.querySelector('#entryForm button[type="submit"]').textContent = 'Update Entry';
-
-            // Reset any other custom text fields after loading
-            resetCustomTextFields();
-
-            // Ensure the High Stress text group is visible if the checkbox is checked
-            const highStressCheckbox = document.getElementById('highStressCheckbox');
-            if (highStressCheckbox && highStressCheckbox.checked) {
-                document.getElementById('highStressGroup').style.display = 'block';
+        if (c.value === 'High Stress') {
+            const stressFactor = envFactors.find(f => f.startsWith('High Stress:'));
+            if (stressFactor) {
+                c.checked = true;
+                const highStressText = document.getElementById('highStressText');
+                const highStressGroup = document.getElementById('highStressGroup');
+                if (highStressText) highStressText.value = stressFactor.substring(12);
+                if (highStressGroup) highStressGroup.style.display = 'block';
+            } else {
+                c.checked = false;
+                const highStressText = document.getElementById('highStressText');
+                const highStressGroup = document.getElementById('highStressGroup');
+                if (highStressText) highStressText.value = '';
+                if (highStressGroup) highStressGroup.style.display = 'none';
             }
-            switchTab('entry');
-        } else if (e.target.matches('.duplicate-btn')) {
+        } else {
+            c.checked = envFactors.includes(c.value);
+        }
+    });
+
+    document.querySelector('#entryForm button[type="submit"]').textContent = 'Update Entry';
+    switchTab('entry');
+}
+
+ else if (e.target.matches('.duplicate-btn')) {
             duplicateEntry(id);
         } else if (e.target.matches('.delete')) {
             if (confirm('Are you sure you want to delete this entry?')) {
                 fetch(`/api/entries/id/${id}`, { method: 'DELETE' }).then(loadEntries);
             }
         }
-    });
-
-    document.getElementById('itemType').addEventListener('change', e => {
-        document.getElementById('customItemGroup').style.display = (e.target.value === 'New Food') ? 'block' : 'none';
     });
 
     document.getElementById('symptomSeverity').addEventListener('input', e => {
@@ -612,12 +714,54 @@ function setupEventListeners() {
             alert('Error saving reflection. Please try again.');
         }
     });
+    // Add these to your setupEventListeners function
+// In setupEventListeners(), replace the substance event listeners with:
+const substanceTypeEl = document.getElementById('substanceType');
+if (substanceTypeEl) {
+    substanceTypeEl.addEventListener('change', (e) => {
+        populateSubstanceDropdown(e.target.value);
+        document.getElementById('newSubstanceGroup').style.display = 'none';
+    });
+}
+
+const substanceNameEl = document.getElementById('substanceName');
+if (substanceNameEl) {
+    substanceNameEl.addEventListener('change', (e) => {
+        const newSubstanceGroup = document.getElementById('newSubstanceGroup');
+        const label = document.getElementById('newSubstanceLabel');
+        const type = document.getElementById('substanceType').value;
+        
+        if (e.target.value === '__NEW__') {
+            newSubstanceGroup.style.display = 'block';
+            label.textContent = `New ${type.charAt(0).toUpperCase() + type.slice(1)} Name`;
+            document.getElementById('newSubstanceName').focus();
+        } else {
+            newSubstanceGroup.style.display = 'none';
+        }
+    });
+}
+
+const newSubstanceNameEl = document.getElementById('newSubstanceName');
+if (newSubstanceNameEl) {
+    newSubstanceNameEl.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            const type = document.getElementById('substanceType').value;
+            const name = e.target.value.trim();
+            
+            if (name && type) {
+                handleNewSubstance(type, name);
+                e.target.value = '';
+            }
+        }
+    });
+}
+
 }
 
 function populateSubstanceFilter() {
     const filterSelect = document.getElementById('trendSubstanceFilter');
     filterSelect.innerHTML = '<option value="all">All Substances</option>';
-    const substanceSet = new Set(entries.map(e => e.itemType === 'New Food' ? e.customItem : e.itemType.replace(/\s*\(.*\)/, '')).filter(Boolean));
+    const substanceSet = new Set(entries.map(e => e.substanceName).filter(Boolean));
     substanceSet.forEach(substance => {
         const option = document.createElement('option');
         option.value = substance;
@@ -626,7 +770,112 @@ function populateSubstanceFilter() {
     });
 }
 
+// Load all substances
+async function loadSubstances() {
+    try {
+        const [medications, supplements, foods] = await Promise.all([
+            fetch('/api/substances/medication').then(r => r.json()),
+            fetch('/api/substances/supplement').then(r => r.json()),
+            fetch('/api/substances/food').then(r => r.json())
+        ]);
+        
+        medicationsList = medications;
+        supplementsList = supplements;
+        foodsList = foods;
+    } catch (err) {
+        console.error('Error loading substances:', err);
+    }
+}
+
+// Populate substance dropdown based on type
+function populateSubstanceDropdown(type, selectedSubstance = null) {
+    const nameEl = document.getElementById('substanceName');
+    if (!nameEl) return;
+
+    const normalizedType = (type || '').toLowerCase();
+    
+    let list = [];
+    if (normalizedType === 'medication') list = medicationsList;
+    else if (normalizedType === 'supplement') list = supplementsList;
+    else if (normalizedType === 'food') list = foodsList;
+
+    nameEl.innerHTML = '<option value="">Select...</option>';
+
+    list.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.name;
+        option.textContent = item.name;
+        nameEl.appendChild(option);
+    });
+
+    // Handle custom substances
+    if (selectedSubstance && !list.find(item => item.name === selectedSubstance)) {
+        const customOption = document.createElement('option');
+        customOption.value = selectedSubstance;
+        customOption.textContent = `${selectedSubstance} (Custom)`;
+        nameEl.appendChild(customOption);
+    }
+
+    // Add "Add New" option
+    const newOption = document.createElement('option');
+    newOption.value = '__NEW__';
+    newOption.textContent = `Add New ${normalizedType.charAt(0).toUpperCase() + normalizedType.slice(1)}`;
+    nameEl.appendChild(newOption);
+
+    // ✅ Enable the dropdown after populating
+    nameEl.disabled = false;
+
+    // Set selected value if provided
+    if (selectedSubstance) {
+        nameEl.value = selectedSubstance;
+    }
+}
+
+// Handle adding new substances
+async function handleNewSubstance(type, name) {
+    try {
+        const response = await fetch(`/api/substances/${type}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        });
+        
+        if (response.ok) {
+            await loadSubstances(); // Reload substances
+            populateSubstanceDropdown(type); // Refresh dropdown
+            
+            // Select the newly added substance
+            document.getElementById('substanceName').value = name;
+            document.getElementById('newSubstanceGroup').style.display = 'none';
+        }
+    } catch (err) {
+        console.error('Error adding new substance:', err);
+        alert('Error adding new substance. Please try again.');
+    }
+}
+// Add this to your setupEventListeners function or after DOM loads
+function setupDependentDropdowns() {
+    const substanceTypeEl = document.getElementById('substanceType');
+    const substanceNameEl = document.getElementById('substanceName');
+    
+    if (substanceTypeEl && substanceNameEl) {
+        substanceTypeEl.addEventListener('change', function() {
+            if (this.value && this.value !== '') {
+                // Valid type selected - populate and enable name dropdown
+                populateSubstanceDropdown(this.value);
+                substanceNameEl.disabled = false;
+            } else {
+                // No type selected - disable and reset name dropdown  
+                substanceNameEl.innerHTML = '<option value="">First select type...</option>';
+                substanceNameEl.disabled = true;
+            }
+        });
+    }
+}
+
+
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     loadEntries();
+    setupDependentDropdowns();
 });

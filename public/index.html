@@ -58,21 +58,30 @@
 <label>Time</label>
 <input type="time" id="entryTime" required />
 </div>
+<!-- Replace the existing itemType select with these two dropdowns -->
 <div class="form-group">
-<label>Item Type</label>
-<select id="itemType" required>
-<option value="">Select</option>
-<option value="Famotidine (medication)">Famotidine</option>
-<option value="Sunfiber (supplement)">Sunfiber</option>
-<option value="Propolis (supplement)">Propolis</option>
-<option value="Topical Aloe Vera (supplement)">Topical Aloe Vera</option>
-<option value="New Food">New Food</option>
-</select>
+  <label>Substance Type</label>
+  <select id="substanceType" required>
+      <option value="">Select type...</option>
+      <option value="medication">Medication</option>
+      <option value="supplement">Supplement</option>
+      <option value="food">Food</option>
+  </select>
 </div>
-<div class="form-group" id="customItemGroup" style="display:none;">
-  <label>Custom Item</label>
-  <input type="text" id="customItem" />
+
+<div class="form-group">
+  <label>Substance</label>
+  <select id="substanceName" required disabled>
+      <option value="">First select type...</option>
+  </select>
 </div>
+
+<!-- Add new substance input (hidden by default) -->
+<div class="form-group" id="newSubstanceGroup" style="display: none;">
+  <label id="newSubstanceLabel">New Substance Name</label>
+  <input type="text" id="newSubstanceName" placeholder="Enter new substance name">
+</div>
+
 <div class="form-group">
 <label>Amount</label>
 <input type="text" id="amount" />
