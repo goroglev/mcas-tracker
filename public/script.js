@@ -180,44 +180,59 @@ function duplicateNote(noteId) {
 function renderFilteredHistory() {
     const category = document.getElementById('categoryFilter').value;
     const search = document.getElementById('searchFilter').value.toLowerCase();
-    let filtered = entries.filter(e => {
-        // ✅ Use new structure for filtering
+
+    // Filter entries by search and category (Medication/Supplement/Food)
+    const filteredEntries = entries.filter(e => {
         const matchSearch = Object.values(e).some(v => String(v).toLowerCase().includes(search));
-        const matchCategory = !category ||
+        const matchCategory =
+            !category || category === '' ||
             (category === 'Medication' && e.substanceType === 'medication') ||
             (category === 'Supplement' && e.substanceType === 'supplement') ||
             (category === 'Food' && e.substanceType === 'food');
         return matchSearch && matchCategory;
-    });
-    renderHistoryTable(filtered);
+    }).map(entry => ({
+        ...entry,
+        type: 'entry',
+        sortDate: new Date(`${entry.entryDate}T${entry.entryTime}`)
+    }));
+
+    // Filter notes (reflections) by search only
+    const filteredNotes = (notes || []).filter(n => {
+        const hay = `${n.date || ''} ${n.text || ''}`.toLowerCase();
+        return hay.includes(search);
+    }).map(note => ({
+        ...note,
+        type: 'note',
+        sortDate: new Date(note.date)
+    }));
+
+    // Build the final list based on category selection
+    let items;
+    if (category === 'Reflections') {
+        items = filteredNotes;
+    } else if (!category || category === '') {
+        items = [...filteredEntries, ...filteredNotes];
+    } else {
+        items = filteredEntries; // entries only for Medication/Supplement/Food
+    }
+
+    // Sort newest first and render
+    items.sort((a, b) => b.sortDate - a.sortDate);
+    renderHistoryTable(items);
 }
 
-function renderHistoryTable(list) {
+function renderHistoryTable(items) {
     const tbody = document.getElementById('historyBody');
     tbody.innerHTML = '';
-    
-    // Combine entries and notes, sorted by date
-    const combined = [
-        ...list.map(entry => ({
-            ...entry,
-            type: 'entry',
-            sortDate: new Date(`${entry.entryDate}T${entry.entryTime}`)
-        })),
-        ...(notes || []).map(note => ({
-            ...note,
-            type: 'note',
-            sortDate: new Date(note.date)
-        }))
-    ].sort((a, b) => b.sortDate - a.sortDate);
-    
-    if (!combined.length) {
+
+    if (!items.length) {
         tbody.innerHTML = `<tr><td colspan="6">No entries or reflections found.</td></tr>`;
         return;
     }
 
-    combined.forEach(item => {
+    items.forEach(item => {
         if (item.type === 'note') {
-            // Render note/reflection
+            // Render note/reflection row
             const noteRow = document.createElement('tr');
             noteRow.className = 'note-row';
             noteRow.innerHTML = `
@@ -229,31 +244,29 @@ function renderHistoryTable(list) {
                             <button onclick="event.preventDefault(); event.stopPropagation(); deleteNote('${item.id}'); return false;" class="delete" type="button">Delete</button>
                             <button onclick="duplicateNote('${item.id}')" class="duplicate-btn">Duplicate</button>
                         </div>
-                        <div class="note-text">${escapeHtml(item.text)}</div>
+                        <div class="note-text">${escapeHtml(item.text || '')}</div>
                     </div>
                 </td>
             `;
             tbody.appendChild(noteRow);
         } else {
-            // Render regular entry (your existing code)
+            // Render entry row
             const row = document.createElement('tr');
-// In the regular entry rendering section, change this line:
-row.innerHTML = `
-    <td data-label="Date/Time">${item.entryDate} ${item.entryTime}</td>
-    <td data-label="Item">${escapeHtml(item.substanceName || 'Unknown')}</td>
-    <td data-label="Amount">${escapeHtml(item.amount)}</td>
-    <td data-label="Symptoms">${Array.isArray(item.postDoseSymptoms) ? escapeHtml(item.postDoseSymptoms.join(', ')) : ''}</td>
-    <td data-label="Severity">${item.symptomSeverity}</td>
-    <td data-label="Actions">
-        <button class="edit-btn" data-id="${item.id}">Edit</button>
-        <button class="duplicate-btn" data-id="${item.id}">Duplicate</button>
-        <button class="delete" data-id="${item.id}">Delete</button>
-    </td>
-`;
-
+            row.innerHTML = `
+                <td data-label="Date/Time">${item.entryDate} ${item.entryTime}</td>
+                <td data-label="Item">${escapeHtml(item.substanceName || 'Unknown')}</td>
+                <td data-label="Amount">${escapeHtml(item.amount || '')}</td>
+                <td data-label="Symptoms">${Array.isArray(item.postDoseSymptoms) ? escapeHtml(item.postDoseSymptoms.join(', ')) : ''}</td>
+                <td data-label="Severity">${item.symptomSeverity}</td>
+                <td data-label="Actions">
+                    <button class="edit-btn" data-id="${item.id}">Edit</button>
+                    <button class="duplicate-btn" data-id="${item.id}">Duplicate</button>
+                    <button class="delete" data-id="${item.id}">Delete</button>
+                </td>
+            `;
             tbody.appendChild(row);
-            
-            // Add remarks row
+
+            // Remarks row (entry only)
             const remarksRow = document.createElement('tr');
             remarksRow.className = 'remarks-row';
             const remarksContent = item.remarks ? escapeHtml(item.remarks.toString()) : '<em>No remarks</em>';
