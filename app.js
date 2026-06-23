@@ -60,10 +60,7 @@ async function writeEntries(entries) {
     const dataToWrite = [headers, ...values];
 
     try {
-        await sheets.spreadsheets.values.clear({
-            spreadsheetId: SPREADSHEET_ID,
-            range: RANGE,
-        });
+        // Write new data first (overwrites existing cells in place)
         await sheets.spreadsheets.values.update({
             spreadsheetId: SPREADSHEET_ID,
             range: RANGE,
@@ -71,7 +68,14 @@ async function writeEntries(entries) {
             resource: {
                 values: dataToWrite,
             },
-        });;
+        });
+        // Clear any trailing rows that may remain from previously longer data
+        const sheetName = RANGE.split('!')[0];
+        const clearRange = `${sheetName}!A${dataToWrite.length + 1}:J`;
+        await sheets.spreadsheets.values.clear({
+            spreadsheetId: SPREADSHEET_ID,
+            range: clearRange,
+        });
     } catch (err) {
         throw new Error('Failed to write entries to Google Sheets');
     }
@@ -143,11 +147,14 @@ async function writeNotes(notes) {
 
     const dataToWrite = [headers, ...values];
 
+    // Guard: never silently overwrite Notes with just headers
+    if (dataToWrite.length <= 1) {
+        console.warn('Skipping writeNotes: no note data to write (would clear the sheet)');
+        return;
+    }
+
     try {
-        await sheets.spreadsheets.values.clear({
-            spreadsheetId: SPREADSHEET_ID,
-            range: 'Notes!A1:C',
-        });
+        // Write new data first (overwrites existing cells in place)
         await sheets.spreadsheets.values.update({
             spreadsheetId: SPREADSHEET_ID,
             range: 'Notes!A1:C',
@@ -155,6 +162,12 @@ async function writeNotes(notes) {
             resource: {
                 values: dataToWrite,
             },
+        });
+        // Clear any trailing rows that may remain from previously longer data
+        const clearRange = `Notes!A${dataToWrite.length + 1}:C`;
+        await sheets.spreadsheets.values.clear({
+            spreadsheetId: SPREADSHEET_ID,
+            range: clearRange,
         });
     } catch (err) {
         throw new Error('Failed to write notes to Google Sheets');
@@ -186,7 +199,7 @@ async function readNotes() {
         return notes;
     } catch (err) {
         console.error('The API returned an error reading notes from Google Sheets:', err);
-        return [];
+        throw new Error('Failed to read notes from Google Sheets');
     }
 }
 

@@ -1,0 +1,367 @@
+# .clinerules
+
+## Before writing code, check these 6 things
+1. Is this change about **entries**, **reflections**, **substances**, **history filters**, **charts**, or **Google Sheets persistence**?
+2. Which files actually need changes: `app.js`, `public/index.html`, `public/script.js`, `public/style.css`?
+3. Will this change affect both **backend mapping** and **frontend rendering/state**?
+4. Will this break **combined History** behavior, where entries and reflections appear together?
+5. Will this break **Duplicate**, **Edit**, **Delete**, or **filtering** flows?
+6. Can this be solved with a **small targeted change** instead of a rewrite?
+
+If unsure, preserve behavior and make the smallest safe change.
+
+---
+
+## Project
+This repo is **MCAS Tracker**.
+
+It is a lightweight health-tracking web app built with:
+- Node.js
+- Express
+- vanilla HTML/CSS/JavaScript
+- Google Sheets as the primary datastore
+
+The app tracks:
+- structured MCAS entries
+- dated free-text reflections
+- dashboard/history/analysis views
+
+Do not treat this as a generic CRUD app. Preserve the current health-tracking workflow and UI behavior.
+
+---
+
+## Source of truth
+Always treat **Google Sheets** as the primary persistence layer.
+
+Sheets in the document:
+- `entries`
+- `Notes`
+- `Medications`
+- `Supplements`
+- `Foods`
+
+Assume:
+- `entries` = structured tracking records
+- `Notes` = dated reflections
+- `Medications`, `Supplements`, `Foods` = master substance lists used by the UI
+
+Never re-center the app around CSV. CSV is legacy/dev/export context only, not the main architecture.
+
+---
+
+## File responsibilities
+Always keep concerns separated:
+
+- `app.js` = backend only
+- `public/index.html` = UI structure
+- `public/script.js` = browser logic only
+- `public/style.css` = styling only
+
+Never:
+- put DOM code in `app.js`
+- put Express/server code in `public/script.js`
+- move business logic into HTML
+- mix storage logic into CSS or markup
+
+---
+
+## Always preserve
+Always preserve these product behaviors:
+
+- create entry
+- edit entry
+- delete entry
+- duplicate entry
+- create reflection
+- edit reflection
+- delete reflection
+- load entries from backend
+- load reflections from backend
+- render dashboard
+- render history
+- render analysis/charts
+- search/filter history
+- keep SPA tab navigation working
+
+Always assume **Duplicate** is already implemented and must remain implemented.
+
+Always preserve the combined History timeline:
+- entries + reflections together in chronological order
+
+Always keep Google Sheets mappings aligned across:
+- backend read/write logic
+- frontend state
+- edit form hydration
+- duplicate logic
+- filter logic
+- history rendering
+
+Always prefer small, targeted edits over broad rewrites.
+
+Always update all affected layers when changing a field, route, or workflow.
+
+---
+
+## Never
+Never remove or silently break:
+- reflections
+- duplicate action
+- dashboard stats
+- analysis logic
+- charts
+- history filters
+- Google Sheets sync
+- master substance list syncing
+- edit/delete flows
+- SPA tab navigation
+
+Never convert the app into a multi-page architecture unless explicitly requested.
+
+Never introduce React, TypeScript, a database migration, or a major framework rewrite unless explicitly requested.
+
+Never rely on table row position or filtered row index as the true identity of a record if an ID exists.
+
+Never describe Duplicate as planned or future work. It already exists.
+
+Never assume older CSV-based logic is still authoritative.
+
+---
+
+## History rules
+The History tab is intentionally a **combined timeline** of:
+- entries
+- reflections
+
+Filtering must behave like this:
+- `All` → entries + reflections
+- `Medication` / `Supplement` / `Food` → matching entries only, no reflections
+- `Reflections` → reflections only
+
+Do not regress this behavior.
+
+Reflections are first-class records, not decorative notes.
+
+When editing History logic, always check:
+- combined sorting
+- search behavior
+- category filtering
+- rendering of both record types
+- action buttons for both record types
+
+---
+
+## Duplicate rules
+Duplicate behavior must remain:
+
+- duplicate copies an existing entry
+- duplicate gets a fresh timestamp and a new record identity
+- duplicate pre-fills the entry form
+- duplicate opens for editing before save
+- saving the duplicate creates a new record, not an update to the original
+
+When editing duplicate-related code, verify:
+- new ID behavior
+- new timestamp behavior
+- form prefill behavior
+- checkbox restoration
+- environmental factor restoration
+- submit button state
+- save path creates a new record
+
+---
+
+## Substance rules
+Master substance sheets matter:
+- `Medications`
+- `Supplements`
+- `Foods`
+
+Always preserve the controlled-list workflow:
+- user chooses substance type
+- UI loads matching substances
+- adding a new substance should also write it to the correct Google Sheet
+- new substance should become reusable in future entries
+
+Always normalize substance type values consistently, especially casing such as:
+- `food` vs `Food`
+- `medication` vs `Medication`
+- `supplement` vs `Supplement`
+
+When changing substance logic, check:
+- dropdown population
+- new substance creation
+- backend sheet mapping
+- edit hydration
+- duplicate hydration
+- filtering
+
+---
+
+## Data model mindset
+Treat the app as having two main record types:
+
+### Entry
+Typical fields include:
+- id
+- entryDate
+- entryTime
+- substanceType
+- substanceName
+- amount
+- postDoseSymptoms
+- symptomSeverity
+- environmentalFactors
+- remarks
+
+### Reflection
+Typical fields include:
+- id
+- date
+- text
+
+If you change either type, update all relevant places:
+- backend routes
+- backend Google Sheets mapping
+- frontend state
+- rendering
+- filtering
+- edit flows
+- duplicate logic where relevant
+- charts/analysis if affected
+
+---
+
+## When editing backend
+When editing `app.js`:
+
+Always think about:
+- Google Sheets read/write correctness
+- route compatibility
+- ID-based updates
+- shape of returned JSON
+- environment-variable based Google auth/config
+
+Do not add browser logic.
+Do not return data in a shape that breaks existing frontend rendering.
+
+If adding or changing a route, verify impact on:
+- entries load
+- reflections load
+- history rendering
+- filters
+- edit/delete actions
+- duplicate flow
+- new substance flow
+
+---
+
+## When editing frontend logic
+When editing `public/script.js`:
+
+Always check:
+- initial load flow
+- event listeners
+- form submission
+- edit hydration
+- duplicate hydration
+- combined history rendering
+- reflections rendering
+- filtering/search
+- dashboard refresh
+- chart refresh
+
+If changing one of these, assume at least one other part also needs updating.
+
+Do not remove defensive handling for:
+- missing DOM nodes
+- inconsistent casing
+- parsed array fields
+- optional fields
+- legacy data shape edge cases
+
+---
+
+## When editing HTML
+When editing `public/index.html`:
+
+Keep the app as a tabbed SPA.
+Preserve key IDs, classes, and containers unless you also update all dependent JavaScript.
+
+Do not casually rename:
+- form field IDs
+- tab IDs
+- history container IDs
+- chart canvas IDs
+- modal IDs
+- button IDs used by listeners
+
+Assume JS depends heavily on those hooks.
+
+---
+
+## When editing CSS
+When editing `public/style.css`:
+
+Prefer surgical cleanup and targeted styling.
+
+Do not remove:
+- reflection styles
+- duplicate button styles
+- action button layout
+- responsive behavior already relied on by the app
+
+If cleaning CSS:
+- remove true duplicates only
+- preserve behavior
+- preserve reflection presentation
+- preserve entry/reflection distinction
+- preserve mobile usability
+
+---
+
+## Preferred change style
+Preferred output when making changes:
+1. State which files change.
+2. State why each file changes.
+3. Give exact code replacements when practical.
+4. Keep changes minimal.
+5. Preserve naming and conventions unless there is a strong reason not to.
+
+Preferred coding style:
+- readable JavaScript
+- explicit logic
+- small named functions
+- stable IDs/classes
+- minimal abstraction
+- minimal new dependencies
+
+---
+
+## Local development assumptions
+Assume normal local workflow:
+
+```bash
+npm install
+node app.js
+```
+
+or, if present:
+
+```bash
+npm install
+npm start
+```
+
+Use project-local `node_modules`.
+Do not suggest Python-style virtual environments.
+
+---
+
+## Default mindset
+When unsure:
+- preserve behavior
+- preserve Google Sheets integration
+- preserve combined History
+- preserve reflections
+- preserve Duplicate
+- prefer targeted fixes over rewrites
