@@ -178,6 +178,20 @@ button:disabled {
   min-width: 300px;
 }
 
+.remarks-inline {
+  display: none;
+}
+
+/* Entry row background for visual distinction from reflections */
+#historyTable tbody tr:not(.note-row) {
+  background: #edf2fa;
+}
+
+/* Remarks container background */
+.remarks-container {
+  background-color: #e3f0ff;
+}
+
 .remarks-row td {
   background: #f8f8f8;
   font-size: 0.98em;
@@ -193,7 +207,7 @@ button:disabled {
   white-space: pre-line;
   padding: 0.4em 0.2em 0.4em 0.7em;
   border-left: 3px solid #e0e0e0;
-  background: #f9f9fa;
+  background: #e3f0ff;
 }
 
 /* Slider container */
@@ -411,7 +425,7 @@ button:disabled {
 }
 
 .note-entry {
-  background: #fffbf0;
+  background: #fef7e6;
   border-left: 4px solid #f39c12;
   padding: 1em;
   margin: 0.5em 0;
@@ -487,6 +501,21 @@ button:disabled {
 
   .note-entry {
     font-size: 0.9em;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .note-entry .note-date {
+    order: 1;
+    text-align: left;
+  }
+
+  .note-entry .note-text {
+    order: 2;
+  }
+
+  .note-entry .note-actions {
+    order: 3;
   }
 
   /* Tab content mobile spacing */
@@ -565,6 +594,10 @@ button:disabled {
     min-height: 30px;
   }
 
+  #historyTable td.note-cell {
+    padding-top: 0;
+  }
+
   #historyTable td:empty {
     min-height: 20px;
     padding: 0.3em 0;
@@ -580,7 +613,7 @@ button:disabled {
   }
 
   .remarks-container {
-    background-color: #f0f8ff;
+    background-color: #e3f0ff;
     border-left: 4px solid #336699;
     padding: 1em;
     margin: 0;
@@ -599,6 +632,22 @@ button:disabled {
 
   #historyTable td[data-label='Actions']::before {
     padding-bottom: 20px;
+  }
+
+  .remarks-inline {
+    display: block;
+  }
+
+  #historyTable .remarks-row {
+    display: none;
+  }
+
+  .remarks-container {
+    text-align: left;
+  }
+
+  .note-text {
+    text-align: left;
   }
 
   .edit-btn,

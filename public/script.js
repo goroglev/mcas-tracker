@@ -252,24 +252,33 @@ function renderHistoryTable(items) {
         } else {
             // Render entry row
             const row = document.createElement('tr');
-            row.innerHTML = `
+            const remarksContent = item.remarks ? escapeHtml(item.remarks.toString()) : '<em>No remarks</em>';
+
+            // Build cells: common ones first
+            let cells = `
                 <td data-label="Date/Time">${item.entryDate} ${item.entryTime}</td>
                 <td data-label="Item">${escapeHtml(item.substanceName || 'Unknown')}</td>
                 <td data-label="Amount">${escapeHtml(item.amount || '')}</td>
                 <td data-label="Symptoms">${Array.isArray(item.postDoseSymptoms) ? escapeHtml(item.postDoseSymptoms.join(', ')) : ''}</td>
                 <td data-label="Severity">${item.symptomSeverity}</td>
-                <td data-label="Actions">
+            `;
+
+            // Inline remarks cell: hidden on desktop (CSS), shown on mobile before actions
+            cells += `<td class="remarks-inline" style="padding:0"><div class="remarks-container"><strong>Remarks:</strong> ${remarksContent}</div></td>`;
+
+            // Actions cell always last
+            cells += `<td data-label="Actions">
                     <button class="edit-btn" data-id="${item.id}">Edit</button>
                     <button class="duplicate-btn" data-id="${item.id}">Duplicate</button>
                     <button class="delete" data-id="${item.id}">Delete</button>
-                </td>
-            `;
+                </td>`;
+
+            row.innerHTML = cells;
             tbody.appendChild(row);
 
-            // Remarks row (entry only)
+            // Separate remarks row: hidden on mobile (CSS), shown on desktop
             const remarksRow = document.createElement('tr');
             remarksRow.className = 'remarks-row';
-            const remarksContent = item.remarks ? escapeHtml(item.remarks.toString()) : '<em>No remarks</em>';
             remarksRow.innerHTML = `<td colspan="6"><div class="remarks-container">${remarksContent}</div></td>`;
             tbody.appendChild(remarksRow);
         }
