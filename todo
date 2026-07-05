@@ -1,0 +1,3 @@
+- add links instead of the action buttons in both mobile and desktop view. 
+Currently the action buttons take up huge space in mobile view, and they also 
+don't really look good on desktop. 
